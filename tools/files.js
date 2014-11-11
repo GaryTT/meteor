@@ -223,7 +223,7 @@ files.getSettings = function (filename, watchSet) {
 // user. Presently, the main thing it does is replace $HOME with ~.
 files.prettyPath = function (p) {
   p = files.realpath(p);
-  var home = process.env.HOME;
+  var home = files.getHomeDir();
   if (! home)
     return p;
   var relativeToHome = path.relative(home, p);
@@ -996,6 +996,10 @@ _.extend(files.KeyValueFile.prototype, {
     }
   }
 });
+
+files.getHomeDir = function () {
+  return process.env.HOME || process.env.HOMEPATH || process.env.USERPROFILE;
+};
 
 /////// Below here, functions have been corrected for slashes
 
