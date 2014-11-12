@@ -105,18 +105,18 @@ files.addToGitignore = function (dirPath, entry) {
   var filepath = path.join(dirPath, ".gitignore");
   if (files.exists(filepath)) {
     var data = files.readFile(filepath, 'utf8');
-    var lines = data.split(/\n/);
+    var lines = data.split(os.EOL);
     if (_.any(lines, function (x) { return x === entry; })) {
       // already there do nothing
     } else {
       // rewrite file w/ new entry.
-      if (data.substr(-1) !== "\n") data = data + "\n";
-      data = data + entry + "\n";
+      if (data.substr(-1) !== os.EOL) data = data + os.EOL;
+      data = data + entry + os.EOL;
       files.writeFile(filepath, data, 'utf8');
     }
   } else {
     // doesn't exist, just write it.
-    files.writeFile(filepath, entry + "\n", 'utf8');
+    files.writeFile(filepath, entry + os.EOL, 'utf8');
   }
 };
 
