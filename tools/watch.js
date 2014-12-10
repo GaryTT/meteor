@@ -673,7 +673,7 @@ var readAndWatchFile = function (watchSet, absPath) {
 
 var readFile = function (absPath) {
   try {
-    return files.readFile(absPath);
+    return fs.readFileSync(absPath);
   } catch (e) {
     // Rethrow most errors.
     if (!e || (e.code !== 'ENOENT' && e.code !== 'EISDIR'))
@@ -698,14 +698,14 @@ var readdirSyncOrYield = function (path, yielding) {
   if (yielding) {
     return Future.wrap(fs.readdir)(path).wait();
   } else {
-    return files.read(path);
+    return fs.readdirSync(path);
   }
 };
 var statSyncOrYield = function (path, yielding) {
   if (yielding) {
     return Future.wrap(fs.stat)(path).wait();
   } else {
-    return files.stat(path);
+    return fs.statSync(path);
   }
 };
 
