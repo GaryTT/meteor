@@ -1,5 +1,4 @@
 var _ = require('underscore');
-var path = require('path');
 var files = require('./files.js');
 
 // This file implements "upgraders" --- functions which upgrade a Meteor app to
@@ -27,7 +26,11 @@ var maybePrintNoticeHeader = function () {
 var upgradersByName = {
    "notices-for-0.9.0": function (projectContext) {
      maybePrintNoticeHeader();
-     if (files.exists(path.join(projectContext.projectDir, 'smart.json'))) {
+
+     var smartJsonPath =
+       files.pathJoin(projectContext.projectDir, 'smart.json');
+
+     if (files.exists(smartJsonPath)) {
        // Meteorite apps:
        console.log(
 "0.9.0: Welcome to the new Meteor package system! You can now add any Meteor\n" +
@@ -82,7 +85,7 @@ var upgradersByName = {
   // cordova-platforms filename.
   "0.9.4-platform-file": function (projectContext) {
     var oldPlatformsPath =
-          path.join(projectContext.projectDir, ".meteor", "cordova-platforms");
+      files.pathJoin(projectContext.projectDir, ".meteor", "cordova-platforms");
 
     try {
       var oldPlatformsFile = files.readFile(oldPlatformsPath);

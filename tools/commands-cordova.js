@@ -1,5 +1,4 @@
 var main = require('./main.js');
-var path = require('path');
 var _ = require('underscore');
 var util = require('util');
 var chalk = require('chalk');
@@ -36,7 +35,7 @@ var cordovaWarehouseDir = function () {
 
   var warehouseBase = files.inCheckout()
     ? files.getCurrentToolsDir() : process.env.HOME;
-  return path.join(warehouseBase, ".meteor", "cordova");
+  return files.pathJoin(warehouseBase, ".meteor", "cordova");
 };
 
 var MESSAGE_IOS_ONLY_ON_MAC = "Currently, it is only possible to build iOS apps on an OS X system.";
@@ -168,13 +167,13 @@ cordova.filterPackages = function (packages) {
 
 // --- helpers ---
 
-var localCordova = path.join(files.getCurrentToolsDir(),
+var localCordova = files.pathJoin(files.getCurrentToolsDir(),
   "tools", "cordova-scripts", "cordova.sh");
 
-var localAdb = path.join(files.getCurrentToolsDir(),
+var localAdb = files.pathJoin(files.getCurrentToolsDir(),
   "tools", "cordova-scripts", "adb.sh");
 
-var localAndroid = path.join(files.getCurrentToolsDir(),
+var localAndroid = files.pathJoin(files.getCurrentToolsDir(),
   "tools", "cordova-scripts", "android.sh");
 
 var verboseness = false;
@@ -275,7 +274,7 @@ var getLoadedPackages = function () {
 // --- Cordova routines ---
 
 var generateCordovaBoilerplate = function (projectContext, clientDir, options) {
-  var clientJsonPath = path.join(clientDir, 'program.json');
+  var clientJsonPath = files.pathJoin(clientDir, 'program.json');
   var clientJson = JSON.parse(files.readFile(clientJsonPath, 'utf8'));
   var manifest = clientJson.manifest;
   var settings = options.settings ?
@@ -319,7 +318,7 @@ var generateCordovaBoilerplate = function (projectContext, clientDir, options) {
 
   var boilerplate = new Boilerplate(WEB_ARCH_NAME, manifest, {
     urlMapper: _.identity,
-    pathMapper: function (p) { return path.join(clientDir, p); },
+    pathMapper: function (p) { return files.pathJoin(clientDir, p); },
     baseDataExtension: {
       meteorRuntimeConfig: JSON.stringify(runtimeConfig)
     }
@@ -330,7 +329,7 @@ var generateCordovaBoilerplate = function (projectContext, clientDir, options) {
 // options
 //  - debug
 var getBundle = function (projectContext, bundlePath, options) {
-  var bundler = require(path.join(__dirname, 'bundler.js'));
+  var bundler = require(files.pathJoin(__dirname, 'bundler.js'));
 
   var bundleResult = bundler.bundle({
     projectContext: projectContext,
@@ -360,11 +359,12 @@ var ensureCordovaProject = function (projectContext, appName) {
   var localPluginsPath = localPluginsPathFromCordovaPath(cordovaPath);
   if (! files.exists(cordovaPath)) {
     verboseLog('Cordova build project doesn\'t exist, creating one');
-    files.mkdir_p(path.dirname(cordovaPath));
+    files.mkdir_p(files.pathDirname(cordovaPath));
     try {
       var creation = execFileSyncOrThrow(localCordova,
-        ['create', path.basename(cordovaPath), 'com.meteor.' + appName, appName.replace(/\s/g, '')],
-        { cwd: path.dirname(cordovaPath), env: buildCordovaEnv() });
+        ['create', files.pathBasename(cordovaPath),
+          'com.meteor.' + appName, appName.replace(/\s/g, '')],
+        { cwd: files.pathDirname(cordovaPath), env: buildCordovaEnv() });
 
       // create a folder for storing local plugins
       // XXX cache them there
@@ -504,7 +504,7 @@ var getTarballPluginsLock = function (cordovaPath) {
              ' for tarball-url-based plugins previously installed.');
 
   var tarballPluginsLockPath =
-    path.join(cordovaPath, 'cordova-tarball-plugins.json');
+    files.pathJoin(cordovaPath, 'cordova-tarball-plugins.json');
 
   var tarballPluginsLock;
   try {
@@ -527,7 +527,7 @@ var writeTarballPluginsLock = function (cordovaPath, tarballPluginsLock) {
   verboseLog('Will write cordova-tarball-plugins.json');
 
   var tarballPluginsLockPath =
-    path.join(cordovaPath, 'cordova-tarball-plugins.json');
+    files.pathJoin(cordovaPath, 'cordova-tarball-plugins.json');
 
   files.writeFile(
     tarballPluginsLockPath,
@@ -633,7 +633,7 @@ var ensureCordovaPlugins = function (projectContext, options) {
       // This will completely destroy the project state. We should work with
       // Cordova to fix the bug in their system, because it doesn't seem
       // like there's a way around this.
-      files.rm_recursive(path.join(cordovaPath, 'platforms'));
+      files.rm_recursive(files.pathJoin(cordovaPath, 'platforms'));
       ensureCordovaPlatforms(projectContext);
     };
 
@@ -669,7 +669,7 @@ var ensureCordovaPlugins = function (projectContext, options) {
 var fetchCordovaPluginFromShaUrl =
     function (urlWithSha, localPluginsDir, pluginName) {
   verboseLog('Fetching a tarball from url:', urlWithSha);
-  var pluginPath = path.join(localPluginsDir, pluginName);
+  var pluginPath = files.pathJoin(localPluginsDir, pluginName);
   var pluginTarballPath = pluginPath + '.tgz';
 
   var execFileSync = require('./utils.js').execFileSync;
@@ -708,7 +708,7 @@ var fetchCordovaPluginFromShaUrl =
 
   var actualPluginName = '';
   try {
-    var xmlPath = path.join(pluginPath, 'plugin.xml');
+    var xmlPath = files.pathJoin(pluginPath, 'plugin.xml');
     var xmlContent = files.readFile(xmlPath, 'utf8');
 
     actualPluginName = xmlContent.match(/<plugin[^>]+>/)[0].match(/\sid="([^"]+)"/)[1];
@@ -726,7 +726,7 @@ var fetchCordovaPluginFromShaUrl =
 };
 
 var localPluginsPathFromCordovaPath = function (cordovaPath) {
-  return path.join(cordovaPath, 'local-plugins');
+  return files.pathJoin(cordovaPath, 'local-plugins');
 };
 
 
@@ -748,13 +748,13 @@ var buildCordova = function (projectContext, platforms, options) {
   buildmessage.enterJob({ title: 'Building for mobile devices' }, function () {
     var bundlePath =
           projectContext.getProjectLocalDirectory('build-cordova-temp');
-    var programPath = path.join(bundlePath, 'programs');
+    var programPath = files.pathJoin(bundlePath, 'programs');
 
     var cordovaPath = projectContext.getProjectLocalDirectory('cordova-build');
-    var wwwPath = path.join(cordovaPath, 'www');
-    var applicationPath = path.join(wwwPath, 'application');
-    var cordovaProgramPath = path.join(programPath, WEB_ARCH_NAME);
-    var cordovaProgramAppPath = path.join(cordovaProgramPath, 'app');
+    var wwwPath = files.pathJoin(cordovaPath, 'www');
+    var applicationPath = files.pathJoin(wwwPath, 'application');
+    var cordovaProgramPath = files.pathJoin(programPath, WEB_ARCH_NAME);
+    var cordovaProgramAppPath = files.pathJoin(cordovaProgramPath, 'app');
 
     verboseLog('Bundling the web.cordova program of the app');
     var bundle = getBundle(projectContext, bundlePath, options);
@@ -764,7 +764,7 @@ var buildCordova = function (projectContext, platforms, options) {
 
     // Check and consume the control file
     var controlFilePath =
-          path.join(projectContext.projectDir, 'mobile-config.js');
+      files.pathJoin(projectContext.projectDir, 'mobile-config.js');
     consumeControlFile(
       projectContext, controlFilePath, cordovaPath, options.appName);
 
@@ -797,23 +797,23 @@ var buildCordova = function (projectContext, platforms, options) {
     // generate index.html
     var indexHtml = generateCordovaBoilerplate(
       projectContext, applicationPath, options);
-    files.writeFile(path.join(applicationPath, 'index.html'), indexHtml, 'utf8');
+    files.writeFile(files.pathJoin(applicationPath, 'index.html'), indexHtml, 'utf8');
 
     // write the cordova loader
     verboseLog('Writing meteor_cordova_loader');
-    var loaderPath = path.join(__dirname, 'client', 'meteor_cordova_loader.js');
+    var loaderPath = files.pathJoin(__dirname, 'client', 'meteor_cordova_loader.js');
     var loaderCode = files.readFile(loaderPath);
-    files.writeFile(path.join(wwwPath, 'meteor_cordova_loader.js'), loaderCode);
+    files.writeFile(files.pathJoin(wwwPath, 'meteor_cordova_loader.js'), loaderCode);
 
     verboseLog('Writing a default index.html for cordova app');
-    var indexPath = path.join(__dirname, 'client', 'cordova_index.html');
+    var indexPath = files.pathJoin(__dirname, 'client', 'cordova_index.html');
     var indexContent = files.readFile(indexPath);
-    files.writeFile(path.join(wwwPath, 'index.html'), indexContent);
+    files.writeFile(files.pathJoin(wwwPath, 'index.html'), indexContent);
 
 
     // Cordova Build Override feature (c)
     var buildOverridePath =
-          path.join(projectContext.projectDir, 'cordova-build-override');
+      files.pathJoin(projectContext.projectDir, 'cordova-build-override');
 
     if (files.exists(buildOverridePath) &&
       files.stat(buildOverridePath).isDirectory()) {
@@ -834,8 +834,8 @@ var buildCordova = function (projectContext, platforms, options) {
       // depending on the debug mode build the android part in different modes
       if (_.contains(projectContext.platformList.getPlatforms(), 'android') &&
           _.contains(platforms, 'android')) {
-        var androidBuildPath = path.join(cordovaPath, 'platforms', 'android');
-        var manifestPath = path.join(androidBuildPath, 'AndroidManifest.xml');
+        var androidBuildPath = files.pathJoin(cordovaPath, 'platforms', 'android');
+        var manifestPath = files.pathJoin(androidBuildPath, 'AndroidManifest.xml');
 
         // XXX a hack to reset the debuggable mode
         var manifest = files.readFile(manifestPath, 'utf8');
@@ -844,7 +844,7 @@ var buildCordova = function (projectContext, platforms, options) {
         files.writeFile(manifestPath, manifest, 'utf8');
 
         // XXX workaround the problem of cached apk invalidation
-        files.rm_recursive(path.join(androidBuildPath, 'ant-build'));
+        files.rm_recursive(files.pathJoin(androidBuildPath, 'ant-build'));
       }
 
       if (!options.debug) {
@@ -971,8 +971,8 @@ var buildAndroidEnv = function () {
 
   // Put Android build tool-chain into path
   var envPath = env.PATH || '.';
-  envPath += ":" + path.join(androidSdk, 'tools');
-  envPath += ":" + path.join(androidSdk, 'platform-tools');
+  envPath += ":" + files.pathJoin(androidSdk, 'tools');
+  envPath += ":" + files.pathJoin(androidSdk, 'platform-tools');
   env['PATH'] = envPath;
 
   if (!Android.useGlobalAdk()) {
@@ -1026,7 +1026,7 @@ var execCordovaOnPlatform = function (projectContext, platformName, options) {
     // XXX this is buggy if your app directory is under something with a space,
     // because the cordovaPath part is not quoted for sh!
     args = ['-c', 'open ' +
-            path.join(cordovaPath, 'platforms', 'ios', '*.xcodeproj')];
+            files.pathJoin(cordovaPath, 'platforms', 'ios', '*.xcodeproj')];
 
     try {
       execFileSyncOrThrow('sh', args);
@@ -1186,7 +1186,7 @@ var execCordovaOnPlatform = function (projectContext, platformName, options) {
 
   if (platform === 'ios') {
     var logFilePath =
-      path.join(cordovaPath, 'platforms', 'ios', 'cordova', 'console.log');
+      files.pathJoin(cordovaPath, 'platforms', 'ios', 'cordova', 'console.log');
     verboseLog('Printing logs for ios emulator, tailing file', logFilePath);
 
     // overwrite the file so we don't have to print the old logs
@@ -1395,7 +1395,7 @@ var consumeControlFile = function (projectContext, controlFilePath,
                                    cordovaPath, appName) {
   verboseLog('Reading the mobile control file');
   // clean up the previous settings and resources
-  files.rm_recursive(path.join(cordovaPath, 'resources'));
+  files.rm_recursive(files.pathJoin(cordovaPath, 'resources'));
 
   var code = '';
 
@@ -1427,19 +1427,19 @@ var consumeControlFile = function (projectContext, controlFilePath,
   }
 
   // Defaults are Meteor meatball images located in tool's directory
-  var assetsPath = path.join(__dirname, 'cordova-assets');
-  var iconsPath = path.join(assetsPath, 'icons');
-  var launchscreensPath = path.join(assetsPath, 'launchscreens');
+  var assetsPath = files.pathJoin(__dirname, 'cordova-assets');
+  var iconsPath = files.pathJoin(assetsPath, 'icons');
+  var launchscreensPath = files.pathJoin(assetsPath, 'launchscreens');
   var imagePaths = {
     icon: {},
     splash: {}
   };
 
   var setIcon = function (size, name) {
-    imagePaths.icon[name] = path.join(iconsPath, size + '.png');
+    imagePaths.icon[name] = files.pathJoin(iconsPath, size + '.png');
   };
   var setLaunch = function (size, name) {
-    imagePaths.splash[name] = path.join(launchscreensPath, size + '.png');
+    imagePaths.splash[name] = files.pathJoin(launchscreensPath, size + '.png');
   };
 
   _.each(iconIosSizes, setIcon);
@@ -1613,7 +1613,7 @@ var consumeControlFile = function (projectContext, controlFilePath,
   var androidPlatform = config.ele('platform', { name: 'android' });
 
   // Prepare the resources folder
-  var resourcesPath = path.join(cordovaPath, 'resources');
+  var resourcesPath = files.pathJoin(cordovaPath, 'resources');
   files.rm_recursive(resourcesPath);
   files.mkdir_p(resourcesPath);
 
@@ -1642,7 +1642,7 @@ var consumeControlFile = function (projectContext, controlFilePath,
       if (! suppliedPath)
         return;
 
-      var suppliedFilename = _.last(suppliedPath.split(path.sep));
+      var suppliedFilename = _.last(suppliedPath.split(files.pathSep));
       var extension = _.last(suppliedFilename.split('.'));
 
       // XXX special case for 9-patch png's
@@ -1651,11 +1651,11 @@ var consumeControlFile = function (projectContext, controlFilePath,
       }
 
       var fileName = name + '.' + tag + '.' + extension;
-      var src = path.join('resources', fileName);
+      var src = files.pathJoin('resources', fileName);
 
       // copy the file to the build folder with a standardized name
-      files.copyFile(path.resolve(projectContext.projectDir, suppliedPath),
-                     path.join(resourcesPath, fileName));
+      files.copyFile(files.pathResolve(projectContext.projectDir, suppliedPath),
+                     files.pathJoin(resourcesPath, fileName));
 
       // set it to the xml tree
       xmlEle.ele(tag, imageXmlRec(name, width, height, src));
@@ -1690,7 +1690,7 @@ var consumeControlFile = function (projectContext, controlFilePath,
   setImages(launchAndroidSizes, androidPlatform, 'splash');
 
   var formattedXmlConfig = config.end({ pretty: true });
-  var configPath = path.join(cordovaPath, 'config.xml');
+  var configPath = files.pathJoin(cordovaPath, 'config.xml');
 
   verboseLog('Writing new config.xml');
   files.writeFile(configPath, formattedXmlConfig, 'utf8');
@@ -1963,8 +1963,8 @@ _.extend(Android.prototype, {
         encoding: null
       });
 
-      var dir = path.join(cordovaWarehouseDir(), 'haxm');
-      var filepath = path.join(dir, name);
+      var dir = files.pathJoin(cordovaWarehouseDir(), 'haxm');
+      var filepath = files.pathJoin(dir, name);
       files.mkdir_p(dir);
       files.writeFile(filepath, mpkg);
 
@@ -1999,7 +1999,7 @@ _.extend(Android.prototype, {
       // See if USE_GLOBAL_ADK is a path
       var globalAdk = process.env.USE_GLOBAL_ADK;
       if (globalAdk) {
-        var stat = files.statOrNull(path.join(globalAdk, "tools", "android"));
+        var stat = files.statOrNull(files.pathJoin(globalAdk, "tools", "android"));
         if (stat && stat.isFile()) {
           androidSdkPath = globalAdk;
         }
@@ -2008,7 +2008,7 @@ _.extend(Android.prototype, {
       if (!androidSdkPath) {
         var whichAndroid = Host.which('android');
         if (whichAndroid) {
-          androidSdkPath = path.join(whichAndroid, '../..');
+          androidSdkPath = files.pathJoin(whichAndroid, '../..');
         }
       }
 
@@ -2022,7 +2022,7 @@ _.extend(Android.prototype, {
       return androidSdkPath;
     } else {
       var androidBundlePath = self.getAndroidBundlePath();
-      var androidSdkPath = path.join(androidBundlePath, 'android-sdk');
+      var androidSdkPath = files.pathJoin(androidBundlePath, 'android-sdk');
 
       Console.debug("Using (built-in) Android SDK at", androidSdkPath);
 
@@ -2033,9 +2033,9 @@ _.extend(Android.prototype, {
   getAndroidBundlePath: function () {
     // XXX XXX is this right?
     if (files.usesWarehouse())
-      return path.join(tropo.root, 'android_bundle');
+      return files.pathJoin(tropo.root, 'android_bundle');
     else
-      return path.join(files.getCurrentToolsDir(), 'android_bundle');
+      return files.pathJoin(files.getCurrentToolsDir(), 'android_bundle');
   },
 
   runAndroidTool: function (args, options) {
@@ -2043,7 +2043,7 @@ _.extend(Android.prototype, {
     options = options || {};
 
     var androidSdk = self.findAndroidSdk();
-    var androidToolPath = path.join(androidSdk, 'tools', 'android');
+    var androidToolPath = files.pathJoin(androidSdk, 'tools', 'android');
 
     options.env = _.extend(buildAndroidEnv(), options.env || {});
     if (options.progress) {
@@ -2152,7 +2152,7 @@ _.extend(Android.prototype, {
     var self = this;
 
     var androidSdkPath = self.findAndroidSdk();
-    var stat = files.statOrNull(path.join(androidSdkPath, 'platforms', name));
+    var stat = files.statOrNull(files.pathJoin(androidSdkPath, 'platforms', name));
     if (stat == null) {
       return false;
     }
@@ -2163,7 +2163,7 @@ _.extend(Android.prototype, {
     var self = this;
 
     var androidSdkPath = self.findAndroidSdk();
-    var stat = files.statOrNull(path.join(androidSdkPath, 'build-tools', version));
+    var stat = files.statOrNull(files.pathJoin(androidSdkPath, 'build-tools', version));
     if (stat == null) {
       return false;
     }
@@ -2174,7 +2174,7 @@ _.extend(Android.prototype, {
     var self = this;
 
     var androidSdkPath = self.findAndroidSdk();
-    var aaptPath = path.join(androidSdkPath,
+    var aaptPath = files.pathJoin(androidSdkPath,
                              'build-tools',
                              buildToolsVersion,
                              'aapt');
@@ -2214,7 +2214,7 @@ _.extend(Android.prototype, {
     // trivial).  If we have an old version, it is possible that some newer
     // packages will fail to install (like an updated x86 image?)
     var androidSdkPath = self.findAndroidSdk();
-    var stat = files.statOrNull(path.join(androidSdkPath, 'platform-tools', 'adb'));
+    var stat = files.statOrNull(files.pathJoin(androidSdkPath, 'platform-tools', 'adb'));
     if (stat == null) {
       return false;
     }
@@ -2237,7 +2237,7 @@ _.extend(Android.prototype, {
 
     // XXX: Use emulator64-x86?  What difference does it make?
     var name = 'emulator';
-    var emulatorPath = path.join(androidSdk, 'tools', name);
+    var emulatorPath = files.pathJoin(androidSdk, 'tools', name);
 
     var args = ['-avd', avd];
 
@@ -2252,7 +2252,7 @@ _.extend(Android.prototype, {
     var self = this;
 
     var androidSdk = self.findAndroidSdk();
-    var adbPath = path.join(androidSdk, 'platform-tools', "adb");
+    var adbPath = files.pathJoin(androidSdk, 'platform-tools', "adb");
 
     var runOptions = options || {};
     runOptions.env = buildAndroidEnv();
@@ -2289,9 +2289,9 @@ _.extend(Android.prototype, {
       var avdPath;
       if (self.useGlobalAdk()) {
         var home = Host.getHomeDir();
-        avdPath = path.join(home, '.android', 'avd', avd + '.avd');
+        avdPath = files.pathJoin(home, '.android', 'avd', avd + '.avd');
       } else {
-        avdPath = path.join(androidBundlePath, avd + '_avd');
+        avdPath = files.pathJoin(androidBundlePath, avd + '_avd');
       }
 
       var args = ['create', 'avd',
@@ -2303,7 +2303,7 @@ _.extend(Android.prototype, {
       // We need to send a new line to bypass the 'custom hardware prompt'
       self.runAndroidTool(args, {stdin: '\n'});
 
-      var config = new files.KeyValueFile(path.join(avdPath, 'config.ini'));
+      var config = new files.KeyValueFile(files.pathJoin(avdPath, 'config.ini'));
 
       // Nice keyboard support
       config.set("hw.keyboard", "yes");
@@ -2443,7 +2443,7 @@ _.extend(Android.prototype, {
     var self = this;
 
     var androidBundlePath = self.getAndroidBundlePath();
-    var versionPath = path.join(androidBundlePath, '.bundle_version.txt');
+    var versionPath = files.pathJoin(androidBundlePath, '.bundle_version.txt');
 
     if (files.statOrNull(versionPath)) {
       var version = files.readFile(versionPath, { encoding: 'utf-8' });
@@ -2461,7 +2461,7 @@ _.extend(Android.prototype, {
     // XXX: Replace script
     try {
       buildmessage.enterJob({ title: 'Downloading Android bundle' }, function () {
-        var scriptPath = path.join(files.getCurrentToolsDir(), 'tools', 'cordova-scripts', 'ensure_android_bundle.sh');
+        var scriptPath = files.pathJoin(files.getCurrentToolsDir(), 'tools', 'cordova-scripts', 'ensure_android_bundle.sh');
 
         verboseLog('Running script ' + scriptPath);
 
@@ -2903,7 +2903,7 @@ main.registerCommand({
   buildmessage.enterJob({ title: 'Adding platforms' }, function () {
     projectContext.platformList.write(currentPlatforms.concat(platforms));
 
-    var appName = path.basename(projectContext.projectDir);
+    var appName = files.pathBasename(projectContext.projectDir);
     ensureCordovaProject(projectContext, appName);
     ensureCordovaPlatforms(projectContext);
   });
@@ -2955,7 +2955,7 @@ main.registerCommand({
   }
   projectContext.platformList.write(platforms);
 
-  var appName = path.basename(projectContext.projectDir);
+  var appName = files.pathBasename(projectContext.projectDir);
   ensureCordovaProject(projectContext, appName);
   ensureCordovaPlatforms(projectContext);
 });

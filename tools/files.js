@@ -1116,3 +1116,48 @@ files.symlink = wrapFsFunc(fs.symlink, [0, 1]);
 files.readlink = wrapFsFunc(fs.readlink, [0]);
 
 
+// wrappings for path functions those always run as they were on unix
+var wrapPathFunction = function (f) {
+  return function (/* args */) {
+    var args = _.toArray(arguments);
+    if (process.platform === 'win32')
+      return toPosixPath(f.apply(path, _.map(args, toDosPath)));
+    else
+      return f.apply(path, arguments);
+  };
+};
+
+var toPosixPath = function (p) {
+  p = p.replace(/\\/g, '/');
+  if (p[1] === ':') {
+    // transform "C:/bla/bla" to "/C/bla/bla"
+    p[1] = p[0];
+    p[0] = '/';
+  }
+
+  return p;
+};
+
+var toDosPath = function (p) {
+  p = p.replace(/\//g, '\\');
+  if (p[0] === '/') {
+    if (! /^\/[A-Z]\//.test(p))
+      throw new Error("Surprising path: " + p);
+    // transform a previously windows path back
+    p[0] = p[1];
+    p[1] = '/';
+  }
+
+  return p;
+};
+
+files.pathJoin = wrapPathFunction(path.join);
+files.pathNormalize = wrapPathFunction(path.normalize);
+files.pathRelative = wrapPathFunction(path.relative);
+files.pathResolve = wrapPathFunction(path.resolve);
+files.pathDirname = wrapPathFunction(path.dirname);
+files.pathBasename = wrapPathFunction(path.basename);
+files.pathExtname = wrapPathFunction(path.extname);
+files.pathSep = '/';
+files.pathDelimiter = ':';
+

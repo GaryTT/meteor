@@ -1,5 +1,4 @@
 var _ = require('underscore');
-var path = require('path');
 var utils = require('./utils.js');
 var files = require('./files.js');
 var config = require('./config.js');
@@ -149,7 +148,7 @@ var writeSessionData = function (data) {
     // it, and make it readable and writable only by the current
     // user (mode 0600).
     var tempPath =
-          path.join(path.dirname(sessionPath), '.meteorsession.' +
+          files.pathJoin(files.pathDirname(sessionPath), '.meteorsession.' +
                     Math.floor(Math.random() * 999999));
     try {
       var fd = files.open(tempPath, 'wx', 0600);

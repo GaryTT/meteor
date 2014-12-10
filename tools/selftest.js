@@ -1,5 +1,4 @@
 var _ = require('underscore');
-var path = require('path');
 var files = require('./files.js');
 var utils = require('./utils.js');
 var parseStack = require('./parse-stack.js');
@@ -166,7 +165,7 @@ var newSelfTestCatalog = function () {
       // build, and we're fine with dying if they don't (there's no worries
       // about needing to springboard).
       selfTestCatalog.initialize({
-        localPackageSearchDirs: [path.join(
+        localPackageSearchDirs: [files.pathJoin(
           files.getCurrentToolsDir(), 'packages')]
       });
     });
@@ -449,7 +448,7 @@ var Sandbox = function (options) {
   self.root = files.mkdtemp();
   self.warehouse = null;
 
-  self.home = path.join(self.root, 'home');
+  self.home = files.pathJoin(self.root, 'home');
   files.mkdir(self.home, 0755);
   self.cwd = self.home;
   self.env = {};
@@ -468,7 +467,7 @@ var Sandbox = function (options) {
   if (_.has(options, 'warehouse')) {
     if (!files.inCheckout())
       throw Error("make only use a fake warehouse in a checkout");
-    self.warehouse = path.join(self.root, 'tropohouse');
+    self.warehouse = files.pathJoin(self.root, 'tropohouse');
     self._makeWarehouse(options.warehouse);
   }
 
@@ -503,9 +502,9 @@ var Sandbox = function (options) {
 
   // Figure out the 'meteor' to run
   if (self.warehouse)
-    self.execPath = path.join(self.warehouse, 'meteor');
+    self.execPath = files.pathJoin(self.warehouse, 'meteor');
   else
-    self.execPath = path.join(files.getCurrentToolsDir(), 'meteor');
+    self.execPath = files.pathJoin(files.getCurrentToolsDir(), 'meteor');
 };
 
 _.extend(Sandbox.prototype, {
@@ -564,15 +563,15 @@ _.extend(Sandbox.prototype, {
   createApp: function (to, template, options) {
     var self = this;
     options = options || {};
-    files.cp_r(path.join(__dirname, 'tests', 'apps', template),
-               path.join(self.cwd, to),
+    files.cp_r(files.pathJoin(__dirname, 'tests', 'apps', template),
+               files.pathJoin(self.cwd, to),
                { ignore: [/^local$/] });
     // If the test isn't explicitly managing a mock warehouse, ensure that apps
     // run with our release by default.
     if (options.release) {
-      self.write(path.join(to, '.meteor/release'), options.release);
+      self.write(files.pathJoin(to, '.meteor/release'), options.release);
     } else if (!self.warehouse && release.current.isProperRelease()) {
-      self.write(path.join(to, '.meteor/release'), release.current.name);
+      self.write(files.pathJoin(to, '.meteor/release'), release.current.name);
     }
 
     if (options.dontPrepareApp)
@@ -599,8 +598,8 @@ _.extend(Sandbox.prototype, {
   //   s.cd('mypack');
   createPackage: function (to, template) {
     var self = this;
-    files.cp_r(path.join(__dirname, 'tests', 'packages', template),
-               path.join(self.cwd, to));
+    files.cp_r(files.pathJoin(__dirname, 'tests', 'packages', template),
+               files.pathJoin(self.cwd, to));
   },
 
   // Change the cwd to be used for subsequent runs. For example:
@@ -618,7 +617,7 @@ _.extend(Sandbox.prototype, {
   cd: function (relativePath, callback) {
     var self = this;
     var previous = self.cwd;
-    self.cwd = path.resolve(self.cwd, relativePath);
+    self.cwd = files.pathResolve(self.cwd, relativePath);
     if (callback) {
       callback();
       self.cwd = previous;
@@ -642,7 +641,7 @@ _.extend(Sandbox.prototype, {
   // cwd. 'contents' is a string (utf8 is assumed).
   write: function (filename, contents) {
     var self = this;
-    files.writeFile(path.join(self.cwd, filename), contents, 'utf8');
+    files.writeFile(files.pathJoin(self.cwd, filename), contents, 'utf8');
   },
 
   // Reads a file in the sandbox as a utf8 string. 'filename' is a
@@ -650,11 +649,11 @@ _.extend(Sandbox.prototype, {
   // file does not exist.
   read: function (filename) {
     var self = this;
-    var file = path.join(self.cwd, filename);
+    var file = files.pathJoin(self.cwd, filename);
     if (!files.exists(file))
       return null;
     else
-      return files.readFile(path.join(self.cwd, filename), 'utf8');
+      return files.readFile(files.pathJoin(self.cwd, filename), 'utf8');
   },
 
   // Copy the contents of one file to another.  In these series of tests, we often
@@ -672,13 +671,13 @@ _.extend(Sandbox.prototype, {
   // Delete a file in the sandbox. 'filename' is as in write().
   unlink: function (filename) {
     var self = this;
-    files.unlink(path.join(self.cwd, filename));
+    files.unlink(files.pathJoin(self.cwd, filename));
   },
 
   // Make a directory in the sandbox. 'filename' is as in write().
   mkdir: function (dirname) {
     var self = this;
-    var dirPath = path.join(self.cwd, dirname);
+    var dirPath = files.pathJoin(self.cwd, dirname);
     if (! files.exists(dirPath)) {
       files.mkdir(dirPath);
     }
@@ -687,14 +686,14 @@ _.extend(Sandbox.prototype, {
   // Rename something in the sandbox. 'oldName' and 'newName' are as in write().
   rename: function (oldName, newName) {
     var self = this;
-    files.rename(path.join(self.cwd, oldName),
-                  path.join(self.cwd, newName));
+    files.rename(files.pathJoin(self.cwd, oldName),
+                 files.pathJoin(self.cwd, newName));
   },
 
   // Return the current contents of .meteorsession in the sandbox.
   readSessionFile: function () {
     var self = this;
-    return files.readFile(path.join(self.root, '.meteorsession'), 'utf8');
+    return files.readFile(files.pathJoin(self.root, '.meteorsession'), 'utf8');
   },
 
   // Overwrite .meteorsession in the sandbox with 'contents'. You
@@ -702,14 +701,14 @@ _.extend(Sandbox.prototype, {
   // restore authentication states.
   writeSessionFile: function (contents) {
     var self = this;
-    return files.writeFile(path.join(self.root, '.meteorsession'),
-                            contents, 'utf8');
+    return files.writeFile(files.pathJoin(self.root, '.meteorsession'),
+                           contents, 'utf8');
   },
 
   _makeEnv: function () {
     var self = this;
     var env = _.clone(self.env);
-    env.METEOR_SESSION_FILE = path.join(self.root, '.meteorsession');
+    env.METEOR_SESSION_FILE = files.pathJoin(self.root, '.meteorsession');
 
     if (self.warehouse) {
       // Tell it where the warehouse lives.
@@ -746,8 +745,8 @@ _.extend(Sandbox.prototype, {
 
     var serverUrl = self.env.METEOR_PACKAGE_SERVER_URL;
     var packagesDirectoryName = config.getPackagesDirectoryName(serverUrl);
-    files.cp_r(path.join(builtPackageTropohouseDir, 'packages'),
-               path.join(self.warehouse, packagesDirectoryName),
+    files.cp_r(files.pathJoin(builtPackageTropohouseDir, 'packages'),
+               files.pathJoin(self.warehouse, packagesDirectoryName),
                { preserveSymlinks: true });
 
     var stubCatalog = {
@@ -825,10 +824,10 @@ _.extend(Sandbox.prototype, {
 
     // And a cherry on top
     // XXX this is hacky
-    files.symlink(path.join(packagesDirectoryName,
-                             "meteor-tool", toolPackageVersion,
-                             'meteor-tool-' + archinfo.host(), 'meteor'),
-                   path.join(self.warehouse, 'meteor'));
+    files.symlink(files.pathJoin(packagesDirectoryName,
+                                  "meteor-tool", toolPackageVersion,
+                                  'meteor-tool-' + archinfo.host(), 'meteor'),
+                  files.pathJoin(self.warehouse, 'meteor'));
   }
 });
 
@@ -955,7 +954,7 @@ _.extend(BrowserStackClient.prototype, {
   },
 
   _getBrowserStackKey: function () {
-    var outputDir = path.join(files.mkdtemp(), "key");
+    var outputDir = files.pathJoin(files.mkdtemp(), "key");
 
     try {
       execFileSync("s3cmd", ["get",
@@ -972,7 +971,7 @@ _.extend(BrowserStackClient.prototype, {
   _launchBrowserStackTunnel: function (callback) {
     var self = this;
     var browserStackPath =
-      path.join(files.getDevBundle(), 'bin', 'BrowserStackLocal');
+      files.pathJoin(files.getDevBundle(), 'bin', 'BrowserStackLocal');
     files.chmod(browserStackPath, 0755);
 
     var args = [
@@ -1396,7 +1395,7 @@ var getAllTests = function () {
 
   // Load all files in the 'tests' directory that end in .js. They
   // are supposed to then call define() to register their tests.
-  var testdir = path.join(__dirname, 'tests');
+  var testdir = files.pathJoin(__dirname, 'tests');
   var filenames = files.readdir(testdir);
   _.each(filenames, function (n) {
     if (! n.match(/^[^.].*\.js$/)) // ends in '.js', doesn't start with '.'
@@ -1404,14 +1403,14 @@ var getAllTests = function () {
     try {
       if (fileBeingLoaded)
         throw new Error("called recursively?");
-      fileBeingLoaded = path.basename(n, '.js');
+      fileBeingLoaded = files.pathBasename(n, '.js');
 
-      var fullPath = path.join(testdir, n);
+      var fullPath = files.pathJoin(testdir, n);
       var contents = files.readFile(fullPath, 'utf8');
       fileBeingLoadedHash =
         require('crypto').createHash('sha1').update(contents).digest('hex');
 
-      require(path.join(testdir, n));
+      require(files.pathJoin(testdir, n));
     } finally {
       fileBeingLoaded = null;
       fileBeingLoadedHash = null;
@@ -1616,7 +1615,7 @@ TestList.prototype.generateSkipReport = function () {
 };
 
 var getTestStateFilePath = function () {
-  return path.join(process.env.HOME, '.meteortest');
+  return files.pathJoin(process.env.HOME, '.meteortest');
 };
 
 var readTestState = function () {

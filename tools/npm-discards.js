@@ -1,5 +1,4 @@
 var assert = require("assert");
-var path = require("path");
 var files = require("./files.js");
 var _ = require("underscore");
 var hasOwn = Object.prototype.hasOwnProperty;
@@ -50,16 +49,16 @@ NDp.shouldDiscard = function shouldDiscard(candidatePath, isDirectory) {
   }
 
   for (var currentPath = candidatePath, parentPath;
-       (parentPath = path.dirname(currentPath)) !== currentPath;
+       (parentPath = files.pathDirname(currentPath)) !== currentPath;
        currentPath = parentPath) {
-    if (path.basename(parentPath) === "node_modules") {
-      var packageName = path.basename(currentPath);
+    if (files.pathBasename(parentPath) === "node_modules") {
+      var packageName = files.pathBasename(currentPath);
 
       if (_.has(this.discards, packageName)) {
-        var relPath = path.relative(currentPath, candidatePath);
+        var relPath = files.pathRelative(currentPath, candidatePath);
 
         if (isDirectory) {
-          relPath = path.join(relPath, path.sep);
+          relPath = files.pathJoin(relPath, files.pathSep);
         }
 
         return this.discards[packageName].some(function(pattern) {
@@ -84,7 +83,7 @@ function matches(pattern, relPath) {
 
   assert.ok(_.isString(pattern));
 
-  if (pattern.charAt(0) === path.sep) {
+  if (pattern.charAt(0) === files.pathSep) {
     return relPath.indexOf(pattern.slice(1)) === 0;
   }
 

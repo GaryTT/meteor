@@ -1,5 +1,4 @@
 var _ = require('underscore');
-var path = require('path');
 var bundler = require('./bundler.js');
 var Builder = require('./builder.js');
 var buildmessage = require('./buildmessage.js');
@@ -96,7 +95,7 @@ var load = function (isopacketName) {
 };
 
 var isopacketPath = function (isopacketName) {
-  return path.join(config.getIsopacketRoot(), isopacketName);
+  return files.pathJoin(config.getIsopacketRoot(), isopacketName);
 };
 
 // ensureIsopacketsLoadable is called at startup and ensures that all isopackets
@@ -132,7 +131,7 @@ var ensureIsopacketsLoadable = function () {
 
         var isopacketRoot = isopacketPath(isopacketName);
         var existingBuildinfo = files.readJSONOrNull(
-          path.join(isopacketRoot, 'isopacket-buildinfo.json'));
+          files.pathJoin(isopacketRoot, 'isopacket-buildinfo.json'));
         var needRebuild = ! existingBuildinfo;
         if (! needRebuild && existingBuildinfo.builtBy !== compiler.BUILT_BY) {
           needRebuild = true;
@@ -212,7 +211,7 @@ var newIsopacketBuildingCatalog = function () {
       // expect them to all build, and we're fine with dying if they don't
       // (there's no worries about needing to springboard).
       isopacketCatalog.initialize({
-        localPackageSearchDirs: [path.join(
+        localPackageSearchDirs: [files.pathJoin(
           files.getCurrentToolsDir(), 'packages')],
         buildingIsopackets: true
       });
@@ -253,7 +252,7 @@ var makeIsopacketBuildContext = function () {
 // this function). Does not run a build process; it must already be built.
 var loadIsopacketFromDisk = function (isopacketName) {
   var image = bundler.readJsImage(
-    path.join(isopacketPath(isopacketName), 'program.json'));
+    files.pathJoin(isopacketPath(isopacketName), 'program.json'));
 
   // An incredibly minimalist version of the environment from
   // tools/server/boot.js.  Kind of a hack.

@@ -1,4 +1,3 @@
-var path = require('path');
 var Future = require('fibers/future');
 var _ = require('underscore');
 var files = require('./files.js');
@@ -265,10 +264,10 @@ _.extend(Db.prototype, {
   open: function (dbFile) {
     var self = this;
 
-    if ( !files.exists(path.dirname(dbFile)) ) {
+    if ( !files.exists(files.pathDirname(dbFile)) ) {
       Console.debug("Creating database directory", dbFile);
 
-      var folder = path.dirname(dbFile);
+      var folder = files.pathDirname(dbFile);
       if ( !files.mkdir_p(folder) )
         throw new Error("Could not create folder at " + folder);
     }

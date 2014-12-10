@@ -36,7 +36,6 @@
 /// CHECKOUT/packages or within a directory in the PACKAGE_DIRS
 /// environment variable). The setup of that is handled by release.js.
 
-var path = require("path");
 var os = require("os");
 var Future = require("fibers/future");
 var _ = require("underscore");
@@ -68,23 +67,23 @@ _.extend(warehouse, {
     if (!files.usesWarehouse())
       throw new Error("There's no warehouse in a git checkout");
 
-    return path.join(process.env.HOME, '.meteor');
+    return files.pathJoin(process.env.HOME, '.meteor');
   },
 
   getToolsDir: function (version) {
-    return path.join(warehouse.getWarehouseDir(), 'tools', version);
+    return files.pathJoin(warehouse.getWarehouseDir(), 'tools', version);
   },
 
   getToolsFreshFile: function (version) {
-    return path.join(warehouse.getWarehouseDir(), 'tools', version, '.fresh');
+    return files.pathJoin(warehouse.getWarehouseDir(), 'tools', version, '.fresh');
   },
 
   _latestReleaseSymlinkPath: function () {
-    return path.join(warehouse.getWarehouseDir(), 'releases', 'latest');
+    return files.pathJoin(warehouse.getWarehouseDir(), 'releases', 'latest');
   },
 
   _latestToolsSymlinkPath: function () {
-    return path.join(warehouse.getWarehouseDir(), 'tools', 'latest');
+    return files.pathJoin(warehouse.getWarehouseDir(), 'tools', 'latest');
   },
 
   // Ensure the passed release version is stored in the local
@@ -110,11 +109,13 @@ _.extend(warehouse, {
     // always install packages by untarring to a temporary directory and
     // renaming atomically, we shouldn't worry about partial packages.)
     return files.exists(
-      path.join(warehouse.getWarehouseDir(), 'packages', name, version));
+      files.pathJoin(warehouse.getWarehouseDir(), 'packages', name, version));
   },
 
   getPackageFreshFile: function (name, version) {
-    return path.join(warehouse.getWarehouseDir(), 'packages', name, version, '.fresh');
+    return files.pathJoin(
+      warehouse.getWarehouseDir(),
+      'packages', name, version, '.fresh');
   },
 
   toolsExistsInWarehouse: function (version) {
@@ -124,8 +125,8 @@ _.extend(warehouse, {
   // Returns true if we already have the release file on disk, and it's not a
   // fake "red pill" release --- we should never springboard to those!
   realReleaseExistsInWarehouse: function (version) {
-    var releasesDir = path.join(warehouse.getWarehouseDir(), 'releases');
-    var releaseManifestPath = path.join(releasesDir,
+    var releasesDir = files.pathJoin(warehouse.getWarehouseDir(), 'releases');
+    var releaseManifestPath = files.pathJoin(releasesDir,
                                         version + '.release.json');
     try {
       var manifest = JSON.parse(files.readFile(releaseManifestPath, 'utf8'));
@@ -186,10 +187,10 @@ _.extend(warehouse, {
   // @param releaseVersion {String} eg "0.1"
   _populateWarehouseForRelease: function (releaseVersion, showInstalling) {
     var future = new Future;
-    var releasesDir = path.join(warehouse.getWarehouseDir(), 'releases');
+    var releasesDir = files.pathJoin(warehouse.getWarehouseDir(), 'releases');
     files.mkdir_p(releasesDir, 0755);
-    var releaseManifestPath = path.join(releasesDir,
-                                        releaseVersion + '.release.json');
+    var releaseManifestPath = files.pathJoin(releasesDir,
+                                             releaseVersion + '.release.json');
 
     // If the release already exists, we don't have to do anything, except maybe
     // print a message if this release has never been used before (and we only
@@ -297,7 +298,8 @@ _.extend(warehouse, {
         JSON.parse(notices);
 
         files.writeFile(
-          path.join(releasesDir, releaseVersion + '.notices.json'), notices);
+          files.pathJoin(releasesDir, releaseVersion + '.notices.json'),
+          notices);
       } catch (e) {
         // no notices, proceed
       }
@@ -360,8 +362,8 @@ _.extend(warehouse, {
       url: WAREHOUSE_URLBASE + toolsTarballPath,
       encoding: null
     });
-    files.extractTarGz(toolsTarball,
-                       path.join(warehouseDirectory, 'tools', toolsVersion));
+    files.extractTarGz(
+      toolsTarball, files.pathJoin(warehouseDirectory, 'tools', toolsVersion));
     if (!dontWriteFreshFile)
       files.writeFile(warehouse.getToolsFreshFile(toolsVersion), '');
   },
@@ -373,7 +375,7 @@ _.extend(warehouse, {
                                          dontWriteFreshFile) {
     fiberHelpers.parallelEach(
       packagesToDownload, function (version, name) {
-        var packageDir = path.join(
+        var packageDir = files.pathJoin(
           warehouseDirectory, 'packages', name, version);
         var packageUrl = WAREHOUSE_URLBASE + "/packages/" + name +
               "/" + version +

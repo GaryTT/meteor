@@ -1,4 +1,3 @@
-var path = require('path');
 var _ = require('underscore');
 var tropohouse = require('./tropohouse.js');
 var release = require('./release.js');
@@ -169,7 +168,8 @@ var updateMeteorToolSymlink = function () {
     latestReleaseToolPackage, latestReleaseToolVersion, true);
 
   var localLatestReleaseLink = tropohouse.default.latestMeteorSymlink();
-  if (!utils.startsWith(localLatestReleaseLink, relativeToolPath + path.sep)) {
+
+  if (! utils.startsWith(localLatestReleaseLink, relativeToolPath + files.pathSep)) {
     // The latest release from the catalog is not where the ~/.meteor/meteor
     // symlink points to. Let's make sure we have that release on disk,
     // and then update the symlink.
@@ -197,6 +197,6 @@ var updateMeteorToolSymlink = function () {
       throw Error("latest release has no tool?");
 
     tropohouse.default.replaceLatestMeteorSymlink(
-      path.join(relativeToolPath, toolRecord.path, 'meteor'));
+      files.pathJoin(relativeToolPath, toolRecord.path, 'meteor'));
   }
 };

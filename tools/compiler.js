@@ -1,5 +1,4 @@
 var _ = require('underscore');
-var path = require('path');
 
 var archinfo = require('./archinfo.js');
 var buildmessage = require('./buildmessage.js');
@@ -9,6 +8,7 @@ var isopackets = require('./isopackets.js');
 var linker = require('./linker.js');
 var meteorNpm = require('./meteor-npm.js');
 var watch = require('./watch.js');
+var files = require('./files.js');
 
 var compiler = exports;
 
@@ -59,8 +59,8 @@ compiler.compile = function (packageSource, options) {
         // Plugins have their own npm dependencies separate from the
         // rest of the package, so they need their own separate npm
         // shrinkwrap and cache state.
-        npmDir: path.resolve(path.join(packageSource.sourceRoot, '.npm',
-                                       'plugin', info.name))
+        npmDir: files.pathResolve(
+          files.pathJoin(packageSource.sourceRoot, '.npm', 'plugin', info.name))
       });
       if (buildmessage.jobHasMessages())
         return;
@@ -101,7 +101,7 @@ compiler.compile = function (packageSource, options) {
     if (meteorNpm.updateDependencies(packageSource.name,
                                      packageSource.npmCacheDirectory,
                                      packageSource.npmDependencies)) {
-      nodeModulesPath = path.join(packageSource.npmCacheDirectory,
+      nodeModulesPath = files.pathJoin(packageSource.npmCacheDirectory,
                                   'node_modules');
       if (! meteorNpm.dependenciesArePortable(packageSource.npmCacheDirectory))
         isPortable = false;
@@ -300,7 +300,7 @@ var compileUnibuild = function (options) {
       type: "asset",
       data: contents,
       path: relPath,
-      servePath: path.join(inputSourceArch.pkg.serveRoot, relPath),
+      servePath: files.pathJoin(inputSourceArch.pkg.serveRoot, relPath),
       hash: hash
     });
   };
@@ -308,8 +308,8 @@ var compileUnibuild = function (options) {
   _.each(sourceItems, function (source) {
     var relPath = source.relPath;
     var fileOptions = _.clone(source.fileOptions) || {};
-    var absPath = path.resolve(inputSourceArch.pkg.sourceRoot, relPath);
-    var filename = path.basename(relPath);
+    var absPath = files.pathResolve(inputSourceArch.pkg.sourceRoot, relPath);
+    var filename = files.pathBasename(relPath);
     var file = watch.readAndWatchFileWithHash(watchSet, absPath);
     var contents = file.contents;
 
@@ -502,7 +502,7 @@ var compileUnibuild = function (options) {
        * @instance
        */
       pathForSourceMap: (inputSourceArch.pkg.name ?
-        inputSourceArch.pkg.name + "/" + relPath : path.basename(relPath)),
+        inputSourceArch.pkg.name + "/" + relPath : files.pathBasename(relPath)),
 
       // null if this is an app. intended to be used for the sources
       // dictionary for source maps.
@@ -627,7 +627,7 @@ var compileUnibuild = function (options) {
           type: "css",
           refreshable: true,
           data: new Buffer(options.data, 'utf8'),
-          servePath: path.join(inputSourceArch.pkg.serveRoot, options.path),
+          servePath: files.pathJoin(inputSourceArch.pkg.serveRoot, options.path),
           sourceMap: options.sourceMap
         });
       },
@@ -665,7 +665,7 @@ var compileUnibuild = function (options) {
         js.push({
           source: options.data,
           sourcePath: options.sourcePath,
-          servePath: path.join(inputSourceArch.pkg.serveRoot, options.path),
+          servePath: files.pathJoin(inputSourceArch.pkg.serveRoot, options.path),
           bare: !! bare,
           sourceMap: options.sourceMap,
           sourceHash: options._hash
