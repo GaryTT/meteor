@@ -2,8 +2,6 @@ var selftest = require('../selftest.js');
 var Sandbox = selftest.Sandbox;
 var files = require('../files.js');
 var _ = require('underscore');
-var utils = require('../utils.js');
-var fs = require('fs');
 var path = require('path');
 
 // Copy the contents of one file to another.  In these series of tests, we often

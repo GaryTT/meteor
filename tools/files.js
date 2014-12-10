@@ -363,7 +363,7 @@ files.treeHash = function (root, options) {
   };
 
   traverse('');
-  hashLog && fs.appendFileSync(process.env.TREE_HASH_DEBUG, hashLog.join(''));
+  hashLog && files.appendFile(process.env.TREE_HASH_DEBUG, hashLog.join(''));
   return hash.digest('base64');
 };
 
@@ -1068,6 +1068,7 @@ var wrapFsFunc = function (fsFunc, pathArgIndices, options) {
 }
 
 files.writeFile = wrapFsFunc(fs.writeFile, [0]);
+files.appendFile = wrapFsFunc(fs.appendFile, [0]);
 files.readFile = wrapFsFunc(fs.readFile, [0]);
 files.stat = wrapFsFunc(fs.stat, [0]);
 files.lstat = wrapFsFunc(fs.lstat, [0]);

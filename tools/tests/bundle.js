@@ -1,7 +1,7 @@
 var selftest = require('../selftest.js');
 var Sandbox = selftest.Sandbox;
 var path = require("path");
-var fs = require("fs");
+var files = require("../files.js");
 
 selftest.define("bundle", ["slow"], function () {
   var s = new Sandbox();
@@ -14,5 +14,5 @@ selftest.define("bundle", ["slow"], function () {
   run.expectExit(0);
 
   var tarball = path.join(s.cwd, "myapp.tgz");
-  selftest.expectEqual(fs.existsSync(tarball), true);
+  selftest.expectEqual(files.exists(tarball), true);
 });

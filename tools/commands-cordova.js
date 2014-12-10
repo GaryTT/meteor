@@ -1,7 +1,6 @@
 var main = require('./main.js');
 var path = require('path');
 var _ = require('underscore');
-var fs = require('fs');
 var util = require('util');
 var chalk = require('chalk');
 var files = require('./files.js');
@@ -277,10 +276,10 @@ var getLoadedPackages = function () {
 
 var generateCordovaBoilerplate = function (projectContext, clientDir, options) {
   var clientJsonPath = path.join(clientDir, 'program.json');
-  var clientJson = JSON.parse(fs.readFileSync(clientJsonPath, 'utf8'));
+  var clientJson = JSON.parse(files.readFile(clientJsonPath, 'utf8'));
   var manifest = clientJson.manifest;
   var settings = options.settings ?
-    JSON.parse(fs.readFileSync(options.settings, 'utf8')) : {};
+    JSON.parse(files.readFile(options.settings, 'utf8')) : {};
   var publicSettings = settings['public'];
 
   var meteorRelease =
@@ -359,7 +358,7 @@ var ensureCordovaProject = function (projectContext, appName) {
   verboseLog('Ensuring the cordova build project');
   var cordovaPath = projectContext.getProjectLocalDirectory('cordova-build');
   var localPluginsPath = localPluginsPathFromCordovaPath(cordovaPath);
-  if (! fs.existsSync(cordovaPath)) {
+  if (! files.exists(cordovaPath)) {
     verboseLog('Cordova build project doesn\'t exist, creating one');
     files.mkdir_p(path.dirname(cordovaPath));
     try {
@@ -509,7 +508,7 @@ var getTarballPluginsLock = function (cordovaPath) {
 
   var tarballPluginsLock;
   try {
-    var text = fs.readFileSync(tarballPluginsLockPath, 'utf8');
+    var text = files.readFile(tarballPluginsLockPath, 'utf8');
     tarballPluginsLock = JSON.parse(text);
 
     verboseLog('The tarball plugins lock:', tarballPluginsLock);
@@ -530,7 +529,7 @@ var writeTarballPluginsLock = function (cordovaPath, tarballPluginsLock) {
   var tarballPluginsLockPath =
     path.join(cordovaPath, 'cordova-tarball-plugins.json');
 
-  fs.writeFileSync(
+  files.writeFile(
     tarballPluginsLockPath,
     JSON.stringify(tarballPluginsLock),
     'utf8'
@@ -710,7 +709,7 @@ var fetchCordovaPluginFromShaUrl =
   var actualPluginName = '';
   try {
     var xmlPath = path.join(pluginPath, 'plugin.xml');
-    var xmlContent = fs.readFileSync(xmlPath, 'utf8');
+    var xmlContent = files.readFile(xmlPath, 'utf8');
 
     actualPluginName = xmlContent.match(/<plugin[^>]+>/)[0].match(/\sid="([^"]+)"/)[1];
   } catch (err) {
@@ -776,7 +775,7 @@ var buildCordova = function (projectContext, platforms, options) {
     }));
 
     // XXX hack, copy files from app folder one level up
-    if (fs.existsSync(cordovaProgramAppPath)) {
+    if (files.exists(cordovaProgramAppPath)) {
       verboseLog('Copying the JS/CSS files one level up');
       files.cp_r(cordovaProgramAppPath, cordovaProgramPath);
       files.rm_recursive(cordovaProgramAppPath);
@@ -798,26 +797,26 @@ var buildCordova = function (projectContext, platforms, options) {
     // generate index.html
     var indexHtml = generateCordovaBoilerplate(
       projectContext, applicationPath, options);
-    fs.writeFileSync(path.join(applicationPath, 'index.html'), indexHtml, 'utf8');
+    files.writeFile(path.join(applicationPath, 'index.html'), indexHtml, 'utf8');
 
     // write the cordova loader
     verboseLog('Writing meteor_cordova_loader');
     var loaderPath = path.join(__dirname, 'client', 'meteor_cordova_loader.js');
-    var loaderCode = fs.readFileSync(loaderPath);
-    fs.writeFileSync(path.join(wwwPath, 'meteor_cordova_loader.js'), loaderCode);
+    var loaderCode = files.readFile(loaderPath);
+    files.writeFile(path.join(wwwPath, 'meteor_cordova_loader.js'), loaderCode);
 
     verboseLog('Writing a default index.html for cordova app');
     var indexPath = path.join(__dirname, 'client', 'cordova_index.html');
-    var indexContent = fs.readFileSync(indexPath);
-    fs.writeFileSync(path.join(wwwPath, 'index.html'), indexContent);
+    var indexContent = files.readFile(indexPath);
+    files.writeFile(path.join(wwwPath, 'index.html'), indexContent);
 
 
     // Cordova Build Override feature (c)
     var buildOverridePath =
           path.join(projectContext.projectDir, 'cordova-build-override');
 
-    if (fs.existsSync(buildOverridePath) &&
-      fs.statSync(buildOverridePath).isDirectory()) {
+    if (files.exists(buildOverridePath) &&
+      files.stat(buildOverridePath).isDirectory()) {
       verboseLog('Copying over the cordova-build-override');
       files.cp_r(buildOverridePath, cordovaPath);
     }
@@ -839,10 +838,10 @@ var buildCordova = function (projectContext, platforms, options) {
         var manifestPath = path.join(androidBuildPath, 'AndroidManifest.xml');
 
         // XXX a hack to reset the debuggable mode
-        var manifest = fs.readFileSync(manifestPath, 'utf8');
+        var manifest = files.readFile(manifestPath, 'utf8');
         manifest = manifest.replace(/android:debuggable=.(true|false)./g, '');
         manifest = manifest.replace(/<application /g, '<application android:debuggable="' + !!options.debug + '" ');
-        fs.writeFileSync(manifestPath, manifest, 'utf8');
+        files.writeFile(manifestPath, manifest, 'utf8');
 
         // XXX workaround the problem of cached apk invalidation
         files.rm_recursive(path.join(androidBuildPath, 'ant-build'));
@@ -1191,7 +1190,7 @@ var execCordovaOnPlatform = function (projectContext, platformName, options) {
     verboseLog('Printing logs for ios emulator, tailing file', logFilePath);
 
     // overwrite the file so we don't have to print the old logs
-    fs.writeFileSync(logFilePath, '');
+    files.writeFile(logFilePath, '');
     // print the log file
     execFileAsyncOrThrow('tail', ['-f', logFilePath], {
       verbose: true,
@@ -1400,9 +1399,9 @@ var consumeControlFile = function (projectContext, controlFilePath,
 
   var code = '';
 
-  if (fs.existsSync(controlFilePath)) {
+  if (files.exists(controlFilePath)) {
     // read the file if it exists
-    code = fs.readFileSync(controlFilePath, 'utf8');
+    code = files.readFile(controlFilePath, 'utf8');
   }
 
   var metadata = {
@@ -1694,7 +1693,7 @@ var consumeControlFile = function (projectContext, controlFilePath,
   var configPath = path.join(cordovaPath, 'config.xml');
 
   verboseLog('Writing new config.xml');
-  fs.writeFileSync(configPath, formattedXmlConfig, 'utf8');
+  files.writeFile(configPath, formattedXmlConfig, 'utf8');
 };
 
 var Host = function () {
@@ -1967,7 +1966,7 @@ _.extend(Android.prototype, {
       var dir = path.join(cordovaWarehouseDir(), 'haxm');
       var filepath = path.join(dir, name);
       files.mkdir_p(dir);
-      fs.writeFileSync(filepath, mpkg);
+      files.writeFile(filepath, mpkg);
 
       Console.info(
         "Launching HAXM installer;",
@@ -2447,7 +2446,7 @@ _.extend(Android.prototype, {
     var versionPath = path.join(androidBundlePath, '.bundle_version.txt');
 
     if (files.statOrNull(versionPath)) {
-      var version = fs.readFileSync(versionPath, { encoding: 'utf-8' });
+      var version = files.readFile(versionPath, { encoding: 'utf-8' });
       // XXX: Dry violation with script
       if (version.trim() == '0.1') {
         return true;

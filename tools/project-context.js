@@ -1,12 +1,10 @@
 var _ = require('underscore');
-var fs = require('fs');
 var path = require('path');
 
 var archinfo = require('./archinfo.js');
 var buildmessage = require('./buildmessage.js');
 var catalog = require('./catalog.js');
 var catalogLocal = require('./catalog-local.js');
-var catalogRemote = require('./catalog-remote.js');
 var Console = require('./console.js').Console;
 var files = require('./files.js');
 var isopackCacheModule = require('./isopack-cache.js');
@@ -1181,6 +1179,6 @@ _.extend(exports.FinishedUpgraders.prototype, {
       appendText += upgrader + '\n';
     });
 
-    fs.appendFileSync(self.filename, appendText);
+    files.appendFile(self.filename, appendText);
   }
 });

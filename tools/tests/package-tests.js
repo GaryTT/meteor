@@ -4,10 +4,7 @@ var files = require('../files.js');
 var testUtils = require('../test-utils.js');
 var utils = require('../utils.js');
 var _= require('underscore');
-var fs = require("fs");
-var path = require("path");
 var packageClient = require("../package-client.js");
-var buildmessage = require("../buildmessage.js");
 
 var username = "test";
 var password = "testtest";
@@ -412,8 +409,8 @@ selftest.define("add packages client archs", function (options) {
 var cleanLocalCache = function () {
   var config = require("../config.js");
   var storage =  config.getPackageStorage();
-  if (fs.existsSync(storage)) {
-    fs.unlinkSync(storage);
+  if (files.exists(storage)) {
+    files.unlink(storage);
   }
 };
 

@@ -7,9 +7,7 @@ var files = require('./files.js');
 var packageVersionParser = require('./package-version-parser.js');
 var semver = require('semver');
 var os = require('os');
-var fs = require('fs');
 var url = require('url');
-var child_process = require('child_process');
 
 var utils = exports;
 

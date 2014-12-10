@@ -451,7 +451,7 @@ var Sandbox = function (options) {
   self.warehouse = null;
 
   self.home = path.join(self.root, 'home');
-  fs.mkdirSync(self.home, 0755);
+  files.mkdir(self.home, 0755);
   self.cwd = self.home;
   self.env = {};
   self.fakeMongo = options.fakeMongo;
@@ -643,7 +643,7 @@ _.extend(Sandbox.prototype, {
   // cwd. 'contents' is a string (utf8 is assumed).
   write: function (filename, contents) {
     var self = this;
-    fs.writeFileSync(path.join(self.cwd, filename), contents, 'utf8');
+    files.writeFile(path.join(self.cwd, filename), contents, 'utf8');
   },
 
   // Reads a file in the sandbox as a utf8 string. 'filename' is a
@@ -652,10 +652,10 @@ _.extend(Sandbox.prototype, {
   read: function (filename) {
     var self = this;
     var file = path.join(self.cwd, filename);
-    if (!fs.existsSync(file))
+    if (!files.exists(file))
       return null;
     else
-      return fs.readFileSync(path.join(self.cwd, filename), 'utf8');
+      return files.readFile(path.join(self.cwd, filename), 'utf8');
   },
 
   // Copy the contents of one file to another.  In these series of tests, we often
@@ -673,29 +673,29 @@ _.extend(Sandbox.prototype, {
   // Delete a file in the sandbox. 'filename' is as in write().
   unlink: function (filename) {
     var self = this;
-    fs.unlinkSync(path.join(self.cwd, filename));
+    files.unlink(path.join(self.cwd, filename));
   },
 
   // Make a directory in the sandbox. 'filename' is as in write().
   mkdir: function (dirname) {
     var self = this;
     var dirPath = path.join(self.cwd, dirname);
-    if (! fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath);
+    if (! files.exists(dirPath)) {
+      files.mkdir(dirPath);
     }
   },
 
   // Rename something in the sandbox. 'oldName' and 'newName' are as in write().
   rename: function (oldName, newName) {
     var self = this;
-    fs.renameSync(path.join(self.cwd, oldName),
+    files.rename(path.join(self.cwd, oldName),
                   path.join(self.cwd, newName));
   },
 
   // Return the current contents of .meteorsession in the sandbox.
   readSessionFile: function () {
     var self = this;
-    return fs.readFileSync(path.join(self.root, '.meteorsession'), 'utf8');
+    return files.readFile(path.join(self.root, '.meteorsession'), 'utf8');
   },
 
   // Overwrite .meteorsession in the sandbox with 'contents'. You
@@ -703,7 +703,7 @@ _.extend(Sandbox.prototype, {
   // restore authentication states.
   writeSessionFile: function (contents) {
     var self = this;
-    return fs.writeFileSync(path.join(self.root, '.meteorsession'),
+    return files.writeFile(path.join(self.root, '.meteorsession'),
                             contents, 'utf8');
   },
 
@@ -964,7 +964,7 @@ _.extend(BrowserStackClient.prototype, {
         outputDir
       ]);
 
-      return fs.readFileSync(outputDir, "utf8").trim();
+      return files.readFile(outputDir, "utf8").trim();
     } catch (e) {
       return null;
     }
@@ -974,7 +974,7 @@ _.extend(BrowserStackClient.prototype, {
     var self = this;
     var browserStackPath =
       path.join(files.getDevBundle(), 'bin', 'BrowserStackLocal');
-    fs.chmodSync(browserStackPath, 0755);
+    files.chmod(browserStackPath, 0755);
 
     var args = [
       browserStackPath,
@@ -1398,7 +1398,7 @@ var getAllTests = function () {
   // Load all files in the 'tests' directory that end in .js. They
   // are supposed to then call define() to register their tests.
   var testdir = path.join(__dirname, 'tests');
-  var filenames = fs.readdirSync(testdir);
+  var filenames = files.readdir(testdir);
   _.each(filenames, function (n) {
     if (! n.match(/^[^.].*\.js$/)) // ends in '.js', doesn't start with '.'
       return;
@@ -1408,7 +1408,7 @@ var getAllTests = function () {
       fileBeingLoaded = path.basename(n, '.js');
 
       var fullPath = path.join(testdir, n);
-      var contents = fs.readFileSync(fullPath, 'utf8');
+      var contents = files.readFile(fullPath, 'utf8');
       fileBeingLoadedHash =
         require('crypto').createHash('sha1').update(contents).digest('hex');
 
@@ -1623,8 +1623,8 @@ var getTestStateFilePath = function () {
 var readTestState = function () {
   var testStateFile = getTestStateFilePath();
   var testState;
-  if (fs.existsSync(testStateFile))
-    testState = JSON.parse(fs.readFileSync(testStateFile, 'utf8'));
+  if (files.exists(testStateFile))
+    testState = JSON.parse(files.readFile(testStateFile, 'utf8'));
   if (! testState || testState.version !== 1)
     testState = { version: 1, lastPassedHashes: {} };
   return testState;
@@ -1632,7 +1632,7 @@ var readTestState = function () {
 
 var writeTestState = function (testState) {
   var testStateFile = getTestStateFilePath();
-  fs.writeFileSync(testStateFile, JSON.stringify(testState), 'utf8');
+  files.writeFile(testStateFile, JSON.stringify(testState), 'utf8');
 };
 
 // Same options as getFilteredTests.  Writes to stdout and stderr.

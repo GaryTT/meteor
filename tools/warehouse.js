@@ -43,8 +43,6 @@ var Future = require("fibers/future");
 var _ = require("underscore");
 
 var files = require('./files.js');
-var utils = require('./utils.js');
-var updater = require('./updater.js');
 var httpHelpers = require('./http-helpers.js');
 var fiberHelpers = require('./fiber-helpers.js');
 
