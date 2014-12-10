@@ -1,4 +1,3 @@
-var fs = require('fs');
 var path = require('path');
 var _ = require('underscore');
 var sourcemap = require('source-map');
@@ -402,7 +401,7 @@ _.extend(PackageSource.prototype, {
         self.isCore = true;
       }
     }
-    if (! fs.existsSync(self.sourceRoot))
+    if (! files.exists(self.sourceRoot))
       throw new Error("putative package directory " + dir + " doesn't exist?");
 
     var fileAndDepLoader = null;
@@ -410,7 +409,7 @@ _.extend(PackageSource.prototype, {
     var cordovaDependencies = null;
 
     var packageJsPath = path.join(self.sourceRoot, 'package.js');
-    var code = fs.readFileSync(packageJsPath);
+    var code = files.readFile(packageJsPath);
     var packageJsHash = watch.sha1(code);
 
     var releaseRecords = [];
@@ -745,7 +744,7 @@ _.extend(PackageSource.prototype, {
       require: function (name) {
         var nodeModuleDir = path.join(self.sourceRoot,
                                       '.npm', 'package', 'node_modules', name);
-        if (fs.existsSync(nodeModuleDir)) {
+        if (files.exists(nodeModuleDir)) {
           return require(nodeModuleDir);
         } else {
           try {
@@ -1499,12 +1498,12 @@ _.extend(PackageSource.prototype, {
 
         // The paths that we've called checkForInfiniteRecursion on.
         var seenPaths = {};
-        // Used internally by fs.realpathSync as an optimization.
+        // Used internally by files.realpath as an optimization.
         var realpathCache = {};
         var checkForInfiniteRecursion = function (relDir) {
           var absPath = path.join(self.sourceRoot, relDir);
           try {
-            var realpath = fs.realpathSync(absPath, realpathCache);
+            var realpath = files.realpath(absPath, realpathCache);
           } catch (e) {
             if (!e || e.code !== 'ELOOP')
               throw e;

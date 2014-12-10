@@ -1,4 +1,3 @@
-var fs = require('fs');
 var path = require('path');
 var url = require('url');
 var files = require('./files.js');
@@ -36,8 +35,8 @@ var getUniverse = function () {
 
     if (files.inCheckout()) {
       var p = path.join(files.getCurrentToolsDir(), 'universe');
-      if (fs.existsSync(p))
-        universe = fs.readFileSync(p, 'utf8').trim();
+      if (files.exists(p))
+        universe = files.readFile(p, 'utf8').trim();
     }
   }
 

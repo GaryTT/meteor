@@ -1,4 +1,3 @@
-var fs = require("fs");
 var path = require("path");
 
 var files = require('./files.js');
@@ -241,7 +240,7 @@ var launchMongo = function (options) {
       var portFileExists = false;
       var matchingPortFileExists = false;
       try {
-        matchingPortFileExists = +(fs.readFileSync(portFile)) === port;
+        matchingPortFileExists = +(files.readFile(portFile)) === port;
         portFileExists = true;
       } catch (e) {
         if (!e || e.code !== 'ENOENT')
@@ -261,17 +260,17 @@ var launchMongo = function (options) {
         // Delete the port file if it exists, so we don't mistakenly believe
         // that the DB is still configured.
         if (portFileExists)
-          fs.unlinkSync(portFile);
+          files.unlink(portFile);
 
         try {
-          var dbFiles = fs.readdirSync(dbPath);
+          var dbFiles = files.readdir(dbPath);
         } catch (e) {
           if (!e || e.code !== 'ENOENT')
             throw e;
         }
         _.each(dbFiles, function (dbFile) {
           if (/^local\./.test(dbFile)) {
-            fs.unlinkSync(path.join(dbPath, dbFile));
+            files.unlink(path.join(dbPath, dbFile));
           }
         });
       }
@@ -494,7 +493,7 @@ var launchMongo = function (options) {
         initiateReplSetAndWaitForReady();
         if (!stopped) {
           // Write down that we configured the database properly.
-          fs.writeFileSync(portFile, options.port);
+          files.writeFile(portFile, options.port);
         }
       }
     }

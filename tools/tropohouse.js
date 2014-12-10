@@ -1,14 +1,9 @@
 var path = require("path");
 var fs = require("fs");
-var os = require("os");
-var Future = require("fibers/future");
 var _ = require("underscore");
 var files = require('./files.js');
 var utils = require('./utils.js');
-var updater = require('./updater.js');
 var httpHelpers = require('./http-helpers.js');
-var fiberHelpers = require('./fiber-helpers.js');
-var release = require('./release.js');
 var archinfo = require('./archinfo.js');
 var catalog = require('./catalog.js');
 var Isopack = require('./isopack.js').Isopack;
@@ -68,7 +63,9 @@ _.extend(exports.Tropohouse.prototype, {
 
     var packageRootDir = path.join(self.root, packagesDirectoryName);
     try {
-      var escapedPackages = fs.readdirSync(packageRootDir);
+      // XXX this variable actually can't be accessed from outside this
+      // line, this is definitely a bug
+      var escapedPackages = files.readdir(packageRootDir);
     } catch (e) {
       // No packages at all? We're done.
       if (e.code === 'ENOENT')
@@ -111,7 +108,7 @@ _.extend(exports.Tropohouse.prototype, {
     _.each(escapedPackages, function (packageEscaped) {
       var packageDir = path.join(packageRootDir, packageEscaped);
       try {
-        var versions = fs.readdirSync(packageDir);
+        var versions = files.readdir(packageDir);
       } catch (e) {
         // Somebody put a file in here or something? Whatever, ignore.
         if (e.code === 'ENOENT' || e.code === 'ENOTDIR')

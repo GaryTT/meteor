@@ -155,7 +155,6 @@ var files = require(path.join(__dirname, 'files.js'));
 var Builder = require(path.join(__dirname, 'builder.js'));
 var archinfo = require(path.join(__dirname, 'archinfo.js'));
 var buildmessage = require('./buildmessage.js');
-var fs = require('fs');
 var _ = require('underscore');
 var isopackets = require("./isopackets.js");
 var watch = require('./watch.js');
@@ -304,7 +303,7 @@ _.extend(File.prototype, {
         throw new Error("Have neither contents nor sourcePath for file");
       }
       else
-        self._contents = fs.readFileSync(self.sourcePath);
+        self._contents = files.readFile(self.sourcePath);
     }
 
     return encoding ? self._contents.toString(encoding) : self._contents;
@@ -928,7 +927,7 @@ var _minify = function (UglifyJS, key, files, options) {
     buildmessage.forkJoin({title: 'Minifying: parsing ' + key}, files, function (file) {
       var code = options.fromString
         ? file
-        : fs.readFileSync(file, "utf8");
+        : files.readFile(file, "utf8");
       sourcesContent[file] = code;
       toplevel = UglifyJS.parse(code, {
         filename: options.fromString ? "?" : file,
@@ -969,7 +968,7 @@ var _minify = function (UglifyJS, key, files, options) {
   var inMap = options.inSourceMap;
   var output = {};
   if (typeof options.inSourceMap == "string") {
-    inMap = fs.readFileSync(options.inSourceMap, "utf8");
+    inMap = files.readFile(options.inSourceMap, "utf8");
   }
   if (options.outSourceMap) {
     output.source_map = UglifyJS.SourceMap({
@@ -1323,7 +1322,7 @@ _.extend(JsImage.prototype, {
             var nodeModuleDir =
               path.join(item.nodeModulesDirectory.sourcePath, name);
 
-            if (fs.existsSync(nodeModuleDir)) {
+            if (files.exists(nodeModuleDir)) {
               return require(nodeModuleDir);
             }
             try {
@@ -1523,7 +1522,7 @@ _.extend(JsImage.prototype, {
 // write()). `dir` is the path to the control file.
 JsImage.readFromDisk = function (controlFilePath) {
   var ret = new JsImage;
-  var json = JSON.parse(fs.readFileSync(controlFilePath));
+  var json = JSON.parse(files.readFile(controlFilePath));
   var dir = path.dirname(controlFilePath);
 
   if (json.format !== "javascript-image-pre1")
@@ -1553,14 +1552,14 @@ JsImage.readFromDisk = function (controlFilePath) {
 
     var loadItem = {
       targetPath: item.path,
-      source: fs.readFileSync(path.join(dir, item.path), 'utf8'),
+      source: files.readFile(path.join(dir, item.path), 'utf8'),
       nodeModulesDirectory: nmd
     };
 
     if (item.sourceMap) {
       // XXX this is the same code as isopack.initFromPath
       rejectBadPath(item.sourceMap);
-      loadItem.sourceMap = fs.readFileSync(
+      loadItem.sourceMap = files.readFile(
         path.join(dir, item.sourceMap), 'utf8');
       loadItem.sourceMapRoot = item.sourceMapRoot;
     }
@@ -1568,7 +1567,7 @@ JsImage.readFromDisk = function (controlFilePath) {
     if (!_.isEmpty(item.assets)) {
       loadItem.assets = {};
       _.each(item.assets, function (filename, relPath) {
-        loadItem.assets[relPath] = fs.readFileSync(path.join(dir, filename));
+        loadItem.assets[relPath] = files.readFile(path.join(dir, filename));
       });
     }
 
@@ -1714,7 +1713,7 @@ _.extend(ServerTarget.prototype, {
     }
 
     var devBundleVersion =
-      fs.readFileSync(
+      files.readFile(
         path.join(files.getDevBundle(), '.bundle_version.txt'), 'utf8');
     devBundleVersion = devBundleVersion.split('\n')[0];
 
