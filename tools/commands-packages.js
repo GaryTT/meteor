@@ -1,7 +1,6 @@
 var main = require('./main.js');
 var path = require('path');
 var _ = require('underscore');
-var fs = require("fs");
 var files = require('./files.js');
 var deploy = require('./deploy.js');
 var buildmessage = require('./buildmessage.js');
@@ -2447,7 +2446,7 @@ main.registerCommand({
     var toolRecord = _.findWhere(toolIsopack.toolsOnDisk, {arch: osArch});
     if (!toolRecord)
       throw Error("missing tool for " + osArch);
-    fs.symlinkSync(
+    files.symlink(
       path.join(
         tmpTropo.packagePath(toolPackage, toolVersion, true),
         toolRecord.path,

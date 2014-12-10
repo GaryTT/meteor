@@ -1,6 +1,5 @@
 var _ = require('underscore');
 var path = require('path');
-var fs = require('fs');
 var files = require('./files.js');
 var utils = require('./utils.js');
 var parseStack = require('./parse-stack.js');
@@ -826,7 +825,7 @@ _.extend(Sandbox.prototype, {
 
     // And a cherry on top
     // XXX this is hacky
-    fs.symlinkSync(path.join(packagesDirectoryName,
+    files.symlink(path.join(packagesDirectoryName,
                              "meteor-tool", toolPackageVersion,
                              'meteor-tool-' + archinfo.host(), 'meteor'),
                    path.join(self.warehouse, 'meteor'));

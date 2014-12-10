@@ -37,7 +37,6 @@
 /// environment variable). The setup of that is handled by release.js.
 
 var path = require("path");
-var fs = require("fs");
 var os = require("os");
 var Future = require("fibers/future");
 var _ = require("underscore");
@@ -265,7 +264,7 @@ _.extend(warehouse, {
         // legacy tools we've downloaded into this warehouse. Add the symlink,
         // so that the tools doesn't get confused when it tries to readlink it.
         if (!files.exists(warehouse._latestToolsSymlinkPath())) {
-          fs.symlinkSync(newPieces.tools.version,
+          files.symlink(newPieces.tools.version,
                          warehouse._latestToolsSymlinkPath());
         }
       }
@@ -312,7 +311,7 @@ _.extend(warehouse, {
       // symlink, so that the tools doesn't get confused when it tries to
       // readlink it.
       if (!files.exists(warehouse._latestReleaseSymlinkPath())) {
-        fs.symlinkSync(releaseVersion + '.release.json',
+        files.symlink(releaseVersion + '.release.json',
                        warehouse._latestReleaseSymlinkPath());
       }
     }

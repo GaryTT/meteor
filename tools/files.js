@@ -1111,4 +1111,8 @@ files.write = wrapFsFunc(fs.read, []);
 
 files.close = wrapFsFunc(fs.close, []);
 
+// XXX remove these and stop using symlinks
+files.symlink = wrapFsFunc(fs.symlink, [0, 1]);
+files.readlink = wrapFsFunc(fs.readlink, [0]);
+
 

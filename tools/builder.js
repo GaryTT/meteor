@@ -2,7 +2,6 @@ var path = require('path');
 var watch = require('./watch.js');
 var files = require('./files.js');
 var NpmDiscards = require('./npm-discards.js');
-var fs = require('fs');
 var _ = require('underscore');
 
 // Builder encapsulates much of the file-handling logic need to create
@@ -179,7 +178,7 @@ _.extend(Builder.prototype, {
     self._ensureDirectory(path.dirname(relPath));
     var absPath = path.join(self.buildPath, relPath);
     if (options.symlink) {
-      fs.symlinkSync(options.symlink, absPath);
+      files.symlink(options.symlink, absPath);
     } else {
       // Builder is used to create build products, which should be read-only;
       // users shouldn't be manually editing automatically generated files and
@@ -347,7 +346,7 @@ _.extend(Builder.prototype, {
 
       if (canSymlink) {
         self._ensureDirectory(path.dirname(normOptionsTo));
-        fs.symlinkSync(path.resolve(options.from), absPathTo);
+        files.symlink(path.resolve(options.from), absPathTo);
         return;
       }
     }
@@ -395,7 +394,7 @@ _.extend(Builder.prototype, {
         if (isDirectory) {
           walk(thisAbsFrom, thisRelTo);
         } else if (fileStatus.isSymbolicLink()) {
-          fs.symlinkSync(fs.readlinkSync(thisAbsFrom),
+          files.symlink(files.readlink(thisAbsFrom),
                          path.resolve(self.buildPath, thisRelTo));
           // A symlink counts as a file, as far as "can you put something under
           // it" goes.

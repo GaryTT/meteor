@@ -1,5 +1,4 @@
 var path = require("path");
-var fs = require("fs");
 var _ = require("underscore");
 var files = require('./files.js');
 var utils = require('./utils.js');
@@ -198,7 +197,7 @@ _.extend(exports.Tropohouse.prototype, {
     var downloadedArches = [];
     var packageLinkTarget = null;
     try {
-      packageLinkTarget = fs.readlinkSync(packageLinkFile);
+      packageLinkTarget = files.readlink(packageLinkFile);
     } catch (e) {
       // Complain about anything other than "we don't have it at all". This
       // includes "not a symlink": The main reason this would not be a symlink
@@ -372,7 +371,7 @@ _.extend(exports.Tropohouse.prototype, {
   latestMeteorSymlink: function () {
     var self = this;
     var linkPath = path.join(self.root, 'meteor');
-    return fs.readlinkSync(linkPath);
+    return files.readlink(linkPath);
   },
 
   replaceLatestMeteorSymlink: function (linkText) {
