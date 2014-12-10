@@ -283,13 +283,13 @@ _.extend(exports.ProjectContext.prototype, {
     // This file existing is what makes a project directory a project directory,
     // so let's make sure it exists!
     var constraintFilePath = path.join(self.projectDir, '.meteor', 'packages');
-    if (! fs.existsSync(constraintFilePath)) {
+    if (! files.exists(constraintFilePath)) {
       files.writeFileAtomically(constraintFilePath, '');
     }
 
     // Let's also make sure we have a minimal gitignore.
     var gitignorePath = path.join(self.projectDir, '.meteor', '.gitignore');
-    if (! fs.existsSync(gitignorePath)) {
+    if (! files.exists(gitignorePath)) {
       files.writeFileAtomically(gitignorePath, 'local\n');
     }
   },
@@ -1158,7 +1158,7 @@ _.extend(exports.FinishedUpgraders.prototype, {
 
     var current = null;
     try {
-      current = fs.readFileSync(self.filename, 'utf8');
+      current = files.readFile(self.filename, 'utf8');
     } catch (e) {
       if (e.code !== 'ENOENT')
         throw e;

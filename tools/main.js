@@ -12,7 +12,6 @@ var warehouse = require('./warehouse.js');
 var tropohouse = require('./tropohouse.js');
 var release = require('./release.js');
 var projectContextModule = require('./project-context.js');
-var fs = require('fs');
 var catalog = require('./catalog.js');
 var buildmessage = require('./buildmessage.js');
 var main = exports;
@@ -275,7 +274,7 @@ require('./commands-packages.js');
 // - body (contents of body, trimmed to end with a newline but no blank lines)
 var loadHelp = function () {
   var ret = [];
-  var raw = fs.readFileSync(path.join(__dirname, 'help.txt'), 'utf8');
+  var raw = files.readFile(path.join(__dirname, 'help.txt'), 'utf8');
   return _.map(raw.split(/^>>>/m).slice(1), function (r) {
     var lines = r.split('\n');
     var name = lines.shift().trim();

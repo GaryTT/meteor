@@ -1,7 +1,6 @@
 var main = require('./main.js');
 var path = require('path');
 var _ = require('underscore');
-var fs = require('fs');
 var files = require('./files.js');
 var deploy = require('./deploy.js');
 var buildmessage = require('./buildmessage.js');
@@ -433,7 +432,7 @@ main.registerCommand({
           : path.resolve(packageName);
     var inYourApp = options.appDir ? " in your app" : "";
 
-    if (fs.existsSync(packageDir)) {
+    if (files.exists(packageDir)) {
       Console.error(packageName + ": Already exists" + inYourApp);
       return 1;
     }
@@ -498,7 +497,7 @@ main.registerCommand({
   }
 
   var exampleDir = path.join(__dirname, '..', 'examples');
-  var examples = _.reject(fs.readdirSync(exampleDir), function (e) {
+  var examples = _.reject(files.readdir(exampleDir), function (e) {
     return (e === 'unfinished' || e === 'other'  || e[0] === '.');
   });
 
@@ -525,7 +524,7 @@ main.registerCommand({
     throw new main.ShowUsage;
   var appPath = path.resolve(appPathAsEntered);
 
-  if (fs.existsSync(appPath)) {
+  if (files.exists(appPath)) {
     Console.error(appPath + ": Already exists");
     return 1;
   }
@@ -827,7 +826,7 @@ var buildCommand = function (options) {
     if (platformName === 'ios') {
       if (process.platform !== 'darwin') return;
       files.cp_r(buildPath, path.join(platformPath, 'project'));
-      fs.writeFileSync(
+      files.writeFile(
         path.join(platformPath, 'README'),
         "This is an auto-generated XCode project for your iOS application.\n\n" +
         "Instructions for publishing your iOS app to App Store can be found at:\n" +
@@ -837,7 +836,7 @@ var buildCommand = function (options) {
       files.cp_r(buildPath, path.join(platformPath, 'project'));
       var apkPath = findApkPath(path.join(buildPath, 'ant-build'));
       files.copyFile(apkPath, path.join(platformPath, 'unaligned.apk'));
-      fs.writeFileSync(
+      files.writeFile(
         path.join(platformPath, 'README'),
         "This is an auto-generated Ant project for your Android application.\n\n" +
         "Instructions for publishing your Android app to Play Store can be found at:\n" +
@@ -850,7 +849,7 @@ var buildCommand = function (options) {
 };
 
 var findApkPath = function (dirPath) {
-  var apkPath = _.find(fs.readdirSync(dirPath), function (filePath) {
+  var apkPath = _.find(files.readdir(dirPath), function (filePath) {
     return path.extname(filePath) === '.apk';
   });
 
@@ -1931,13 +1930,13 @@ main.registerCommand({
   // that ssh-agent requires it to have.
   var idpath = "/tmp/meteor-key-" + utils.randomToken();
   maybeLog("Writing ssh key to " + idpath);
-  fs.writeFileSync(idpath, ret.sshKey, {encoding: 'utf8', mode: 0400});
+  files.writeFile(idpath, ret.sshKey, {encoding: 'utf8', mode: 0400});
 
   // Add the known host key to a custom known hosts file.
   var hostpath = "/tmp/meteor-host-" + utils.randomToken();
   var addendum = ret.host + " " + ret.hostKey + "\n";
   maybeLog("Writing host key to " + hostpath);
-  fs.writeFileSync(hostpath, addendum, 'utf8');
+  files.writeFile(hostpath, addendum, 'utf8');
 
   // Finally, connect to the machine.
   var login = ret.username + "@" + ret.host;
@@ -1970,9 +1969,9 @@ main.registerCommand({
   });
   var sshEnd = future.wait();
   maybeLog("Removing hostkey at " + hostpath);
-  fs.unlinkSync(hostpath);
+  files.unlink(hostpath);
   maybeLog("Removing sshkey at " + idpath);
-  fs.unlinkSync(idpath);
+  files.unlink(idpath);
   return sshEnd;
 });
 

@@ -514,7 +514,7 @@ main.registerCommand({
   // XXX Factor out with packageClient.bundleSource so that we don't
   // have knowledge of the tarball structure in two places.
   var packageDir = path.join(sourcePath, name);
-  if (! fs.existsSync(packageDir)) {
+  if (! files.exists(packageDir)) {
     Console.error('Malformed source tarball');
     return 1;
   }
@@ -522,7 +522,7 @@ main.registerCommand({
   var tempProjectDir = files.mkdtemp('meteor-package-arch-build');
   // Copy over a version lock file from the source tarball.
   var versionsFile = path.join(packageDir, '.versions');
-  if (! fs.existsSync(versionsFile)) {
+  if (! files.exists(versionsFile)) {
     Console.error(
       "This package has no valid version lock file: are you trying to use " +
       "publish-for-arch on a core package? Publish-for-arch cannot " +
@@ -602,7 +602,7 @@ main.registerCommand({
   // the release track name, the release version and some short freeform
   // description.
   try {
-    var data = fs.readFileSync(options.args[0], 'utf8');
+    var data = files.readFile(options.args[0], 'utf8');
     relConf = JSON.parse(data);
   } catch (e) {
     Console.error("Could not parse release file: " + e.message);
@@ -2408,7 +2408,7 @@ main.registerCommand({
   // release is the latest recommended until it manages to sync.
   tmpCatalog.forceRecommendRelease(releaseTrack, releaseVersion);
   tmpCatalog.closePermanently();
-  if (fs.existsSync(tmpDataFile + '-wal')) {
+  if (files.exists(tmpDataFile + '-wal')) {
     throw Error("Write-ahead log still exists for " + tmpDataFile
                 + " so the data file will be incomplete!");
   }
@@ -2472,7 +2472,7 @@ main.registerCommand({
 }, function (options) {
   var bannersFile = options.args[0];
   try {
-    var bannersData = fs.readFileSync(bannersFile, 'utf8');
+    var bannersData = files.readFile(bannersFile, 'utf8');
     bannersData = JSON.parse(bannersData);
   } catch (e) {
     Console.error("Could not parse banners file: " + e.message);

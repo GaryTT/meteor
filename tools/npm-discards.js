@@ -1,6 +1,6 @@
 var assert = require("assert");
 var path = require("path");
-var fs = require("fs");
+var files = require("./files.js");
 var _ = require("underscore");
 var hasOwn = Object.prototype.hasOwnProperty;
 
@@ -46,7 +46,7 @@ function merge(into, from) {
 
 NDp.shouldDiscard = function shouldDiscard(candidatePath, isDirectory) {
   if (typeof isDirectory === "undefined") {
-    isDirectory = fs.lstatSync(candidatePath).isDirectory();
+    isDirectory = files.lstat(candidatePath).isDirectory();
   }
 
   for (var currentPath = candidatePath, parentPath;

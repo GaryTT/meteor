@@ -1,5 +1,4 @@
 var _ = require('underscore');
-var fs = require('fs');
 var path = require('path');
 var files = require('./files.js');
 
@@ -28,7 +27,7 @@ var maybePrintNoticeHeader = function () {
 var upgradersByName = {
    "notices-for-0.9.0": function (projectContext) {
      maybePrintNoticeHeader();
-     if (fs.existsSync(path.join(projectContext.projectDir, 'smart.json'))) {
+     if (files.exists(path.join(projectContext.projectDir, 'smart.json'))) {
        // Meteorite apps:
        console.log(
 "0.9.0: Welcome to the new Meteor package system! You can now add any Meteor\n" +
@@ -86,7 +85,7 @@ var upgradersByName = {
           path.join(projectContext.projectDir, ".meteor", "cordova-platforms");
 
     try {
-      var oldPlatformsFile = fs.readFileSync(oldPlatformsPath);
+      var oldPlatformsFile = files.readFile(oldPlatformsPath);
     } catch (e) {
       // If the file doesn't exist, there's no transition to do.
       if (e && e.code === 'ENOENT')
@@ -97,7 +96,7 @@ var upgradersByName = {
       files.splitBufferToLines(oldPlatformsFile), files.trimSpaceAndComments));
     // This method will automatically add "server" and "browser" and sort, etc.
     projectContext.platformList.write(oldPlatforms);
-    fs.unlinkSync(oldPlatformsPath);
+    files.unlink(oldPlatformsPath);
   }
 
   ////////////

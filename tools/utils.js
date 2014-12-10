@@ -344,10 +344,11 @@ exports.defaultOrderKeyForReleaseVersion = function (v) {
   return ret + '$';
 };
 
+// XXX should be in files.js
 exports.isDirectory = function (dir) {
   try {
     // use stat rather than lstat since symlink to dir is OK
-    var stats = fs.statSync(dir);
+    var stats = files.stat(dir);
   } catch (e) {
     return false;
   }
