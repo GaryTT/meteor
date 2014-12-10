@@ -68,15 +68,15 @@ var findUpwards = function (predicate, startPath) {
 files.findAppDir = function (filepath) {
   var isAppDir = function (filepath) {
     // XXX once we are done with the transition to engine, this should
-    // change to: `return fs.existsSync(path.join(filepath, '.meteor',
+    // change to: `return files.exists(path.join(filepath, '.meteor',
     // 'release'))`
 
     // .meteor/packages can be a directory, if .meteor is a warehouse
     // directory.  since installing meteor initializes a warehouse at
     // $HOME/.meteor, we want to make sure your home directory (and all
     // subdirectories therein) don't count as being within a meteor app.
-    try { // use try/catch to avoid the additional syscall to fs.existsSync
-      return fs.statSync(path.join(filepath, '.meteor', 'packages')).isFile();
+    try { // use try/catch to avoid the additional syscall to files.exists
+      return files.stat(path.join(filepath, '.meteor', 'packages')).isFile();
     } catch (e) {
       return false;
     }
@@ -88,7 +88,7 @@ files.findAppDir = function (filepath) {
 files.findPackageDir = function (filepath) {
   var isPackageDir = function (filepath) {
     try {
-      return fs.statSync(path.join(filepath, 'package.js')).isFile();
+      return files.stat(path.join(filepath, 'package.js')).isFile();
     } catch (e) {
       return false;
     }
@@ -102,8 +102,8 @@ files.findPackageDir = function (filepath) {
 // file, if the exact line does not already exist in the file.
 files.addToGitignore = function (dirPath, entry) {
   var filepath = path.join(dirPath, ".gitignore");
-  if (fs.existsSync(filepath)) {
-    var data = fs.readFileSync(filepath, 'utf8');
+  if (files.exists(filepath)) {
+    var data = files.readFile(filepath, 'utf8');
     var lines = data.split(/\n/);
     if (_.any(lines, function (x) { return x === entry; })) {
       // already there do nothing
@@ -111,17 +111,18 @@ files.addToGitignore = function (dirPath, entry) {
       // rewrite file w/ new entry.
       if (data.substr(-1) !== "\n") data = data + "\n";
       data = data + entry + "\n";
-      fs.writeFileSync(filepath, data, 'utf8');
+      files.writeFile(filepath, data, 'utf8');
     }
   } else {
     // doesn't exist, just write it.
-    fs.writeFileSync(filepath, entry + "\n", 'utf8');
+    files.writeFile(filepath, entry + "\n", 'utf8');
   }
 };
 
 // Are we running Meteor from a git checkout?
 files.inCheckout = _.once(function () {
   try {
+    // can't use files.exists here because not in a fiber
     if (fs.existsSync(path.join(files.getCurrentToolsDir(), '.git')))
       return true;
   } catch (e) { console.log(e); }
@@ -150,8 +151,8 @@ files.getToolsVersion = function () {
 
     var parsed;
 
-    if (fs.existsSync(isopackJsonPath)) {
-      var isopackJson = fs.readFileSync(isopackJsonPath);
+    if (files.exists(isopackJsonPath)) {
+      var isopackJson = files.readFile(isopackJsonPath);
       parsed = JSON.parse(isopackJson);
 
       // XXX "isopack-1" is duplicate of isopack.currentFormat
@@ -163,7 +164,7 @@ files.getToolsVersion = function () {
     var unipackageJsonPath = path.join(files.getCurrentToolsDir(),
       '..',  // get out of tool, back to package
       'unipackage.json');
-    var unipackageJson = fs.readFileSync(unipackageJsonPath);
+    var unipackageJson = files.readFile(unipackageJsonPath);
     parsed = JSON.parse(unipackageJson);
     return parsed.name + '@' + parsed.version;
 
@@ -221,7 +222,7 @@ files.getSettings = function (filename, watchSet) {
 // Try to find the prettiest way to present a path to the
 // user. Presently, the main thing it does is replace $HOME with ~.
 files.prettyPath = function (p) {
-  p = fs.realpathSync(p);
+  p = files.realpath(p);
   var home = process.env.HOME;
   if (! home)
     return p;
@@ -234,7 +235,7 @@ files.prettyPath = function (p) {
 // Like statSync, but null if file not found
 files.statOrNull = function (path) {
   try {
-    return Future.wrap(fs.stat)(path).wait();
+    return files.stat(path);
   } catch (e) {
     if (e.code == "ENOENT")
       return null;
@@ -248,7 +249,7 @@ files.rm_recursive = function (p) {
   try {
     // the l in lstat is critical -- we want to remove symbolic
     // links, not what they point to
-    var stat = fs.lstatSync(p);
+    var stat = files.lstat(p);
   } catch (e) {
     if (e.code == "ENOENT")
       return;
@@ -256,20 +257,20 @@ files.rm_recursive = function (p) {
   }
 
   if (stat.isDirectory()) {
-    _.each(fs.readdirSync(p), function (file) {
+    _.each(files.readdir(p), function (file) {
       file = path.join(p, file);
       files.rm_recursive(file);
     });
-    fs.rmdirSync(p);
+    files.rmdir(p);
   } else
-    fs.unlinkSync(p);
+    files.unlink(p);
 };
 
 // Makes all files in a tree read-only.
 var makeTreeReadOnly = function (p) {
   try {
     // the l in lstat is critical -- we want to ignore symbolic links
-    var stat = fs.lstatSync(p);
+    var stat = files.lstat(p);
   } catch (e) {
     if (e.code == "ENOENT")
       return;
@@ -277,7 +278,7 @@ var makeTreeReadOnly = function (p) {
   }
 
   if (stat.isDirectory()) {
-    _.each(fs.readdirSync(p), function (file) {
+    _.each(files.readdir(p), function (file) {
       makeTreeReadOnly(path.join(p, file));
     });
   }
@@ -285,7 +286,7 @@ var makeTreeReadOnly = function (p) {
     var permissions = stat.mode & 0777;
     var readOnlyPermissions = permissions & 0555;
     if (permissions !== readOnlyPermissions)
-      fs.chmodSync(p, readOnlyPermissions);
+      files.chmod(p, readOnlyPermissions);
   }
 };
 
@@ -333,13 +334,13 @@ files.treeHash = function (root, options) {
     }
 
     var absPath = path.join(root, relativePath);
-    var stat = fs.lstatSync(absPath);
+    var stat = files.lstat(absPath);
 
     if (stat.isDirectory()) {
       if (relativePath) {
         updateHash('dir ' + JSON.stringify(relativePath) + '\n');
       }
-      _.each(fs.readdirSync(absPath), function (entry) {
+      _.each(files.readdir(absPath), function (entry) {
         traverse(path.join(relativePath, entry));
       });
     } else if (stat.isFile()) {
@@ -373,8 +374,8 @@ files.mkdir_p = function (dir, mode) {
   var p = path.resolve(dir);
   var ps = path.normalize(p).split(path.sep);
 
-  if (fs.existsSync(p)) {
-    if (fs.statSync(p).isDirectory()) { return true;}
+  if (files.exists(p)) {
+    if (files.stat(p).isDirectory()) { return true;}
     return false;
   }
 
@@ -383,11 +384,11 @@ files.mkdir_p = function (dir, mode) {
   // parent is not a directory.
   if (!success) { return false; }
 
-  fs.mkdirSync(p, mode);
+  files.mkdir(p, mode);
 
   // double check we exist now
-  if (!fs.existsSync(p) ||
-      !fs.statSync(p).isDirectory())
+  if (!files.exists(p) ||
+      !files.stat(p).isDirectory())
     return false; // wtf
   return true;
 };
@@ -414,7 +415,7 @@ files.cp_r = function (from, to, options) {
   var absFrom = path.resolve(from);
   files.mkdir_p(to, 0755);
 
-  _.each(fs.readdirSync(from), function (f) {
+  _.each(files.readdir(from), function (f) {
     if (_.any(options.ignore || [], function (pattern) {
       return f.match(pattern);
     })) return;
@@ -424,7 +425,7 @@ files.cp_r = function (from, to, options) {
       f = options.transformFilename(f);
     var fullTo = path.join(to, f);
     var stats = options.preserveSymlinks
-          ? fs.lstatSync(fullFrom) : fs.statSync(fullFrom);
+          ? files.lstat(fullFrom) : files.stat(fullFrom);
     if (stats.isDirectory()) {
       files.cp_r(fullFrom, fullTo, options);
     } else if (stats.isSymbolicLink()) {
@@ -442,9 +443,9 @@ files.cp_r = function (from, to, options) {
       if (!options.transformContents) {
         copyFileHelper(fullFrom, fullTo, mode);
       } else {
-        var contents = fs.readFileSync(fullFrom);
+        var contents = files.readFile(fullFrom);
         contents = options.transformContents(contents, f);
-        fs.writeFileSync(fullTo, contents, { mode: mode });
+        files.writeFile(fullTo, contents, { mode: mode });
       }
     }
   });
@@ -456,7 +457,7 @@ files.cp_r = function (from, to, options) {
 files.copyFile = function (from, to) {
   files.mkdir_p(path.dirname(path.resolve(to)), 0755);
 
-  var stats = fs.statSync(from);
+  var stats = files.stat(from);
   if (!stats.isFile()) {
     throw Error("cannot copy non-files");
   }
@@ -501,7 +502,7 @@ files.mkdtemp = function (prefix) {
     var tmpDir = _.first(_.map(['TMPDIR', 'TMP', 'TEMP'], function (t) {
       return process.env[t];
     }).filter(_.identity)) || path.sep + 'tmp';
-    tmpDir = fs.realpathSync(tmpDir);
+    tmpDir = files.realpath(tmpDir);
 
     // make the directory. give it 3 tries in case of collisions from
     // crappy random.
@@ -510,7 +511,7 @@ files.mkdtemp = function (prefix) {
       var dirPath = path.join(
         tmpDir, prefix + (Math.random() * 0x100000000 + 1).toString(36));
       try {
-        fs.mkdirSync(dirPath, 0700);
+        files.mkdir(dirPath, 0700);
         return dirPath;
       } catch (err) {
         tries--;
@@ -564,15 +565,15 @@ files.extractTarGz = function (buffer, destPath) {
   future.wait();
 
   // succeed!
-  var topLevelOfArchive = fs.readdirSync(tempDir);
+  var topLevelOfArchive = files.readdir(tempDir);
   if (topLevelOfArchive.length !== 1)
     throw new Error(
       "Extracted archive '" + tempDir + "' should only contain one entry");
 
   var extractDir = path.join(tempDir, topLevelOfArchive[0]);
   makeTreeReadOnly(extractDir);
-  fs.renameSync(extractDir, destPath);
-  fs.rmdirSync(tempDir);
+  files.rename(extractDir, destPath);
+  files.rmdir(tempDir);
 };
 
 // Tar-gzips a directory, returning a stream that can then be piped as
@@ -641,7 +642,7 @@ files.renameDirAlmostAtomically = function (fromDir, toDir) {
   // Get old dir out of the way, if it exists.
   var movedOldDir = true;
   try {
-    fs.renameSync(toDir, garbageDir);
+    files.rename(toDir, garbageDir);
   } catch (e) {
     if (e.code !== 'ENOENT')
       throw e;
@@ -649,7 +650,7 @@ files.renameDirAlmostAtomically = function (fromDir, toDir) {
   }
 
   // Now rename the directory.
-  fs.renameSync(fromDir, toDir);
+  files.rename(fromDir, toDir);
 
   // ... and delete the old one.
   if (movedOldDir)
@@ -660,8 +661,8 @@ files.writeFileAtomically = function (filename, contents) {
   var tmpFile = path.join(
     path.dirname(filename),
     '.' + path.basename(filename) + '.' + utils.randomToken());
-  fs.writeFileSync(tmpFile, contents);
-  fs.renameSync(tmpFile, filename);
+  files.writeFile(tmpFile, contents);
+  files.rename(tmpFile, filename);
 };
 
 // Like fs.symlinkSync, but creates a temporay link and renames it over the
@@ -672,7 +673,7 @@ files.symlinkOverSync = function (linkText, file) {
     path.dirname(file),
     "." + path.basename(file) + ".tmp" + utils.randomToken());
   fs.symlinkSync(linkText, tmpSymlink);
-  fs.renameSync(tmpSymlink, file);
+  files.rename(tmpSymlink, file);
 };
 
 // Run a program synchronously and, assuming it returns success (0),
@@ -881,11 +882,11 @@ files.OfflineError.prototype.toString = function () {
   return "[Offline: " + this.error.toString() + "]";
 };
 
-// Like fs.readdirSync, but skips entries whose names begin with dots, and
+// Like files.readdir, but skips entries whose names begin with dots, and
 // converts ENOENT to [].
 files.readdirNoDots = function (path) {
   try {
-    var entries = fs.readdirSync(path);
+    var entries = files.readdir(path);
   } catch (e) {
     if (e.code === 'ENOENT')
       return [];
@@ -900,7 +901,7 @@ files.readdirNoDots = function (path) {
 // processed individually. Throws if the file doesn't exist or if
 // anything else goes wrong.
 var getLines = function (file) {
-  var buffer = fs.readFileSync(file);
+  var buffer = files.readFile(file);
   var lines = exports.splitBufferToLines(buffer);
 
   // strip blank lines at the end
@@ -935,7 +936,7 @@ exports.getLinesOrEmpty = function (file) {
 // the file. Throws on errors other than ENOENT (including JSON parse failure).
 exports.readJSONOrNull = function (file) {
   try {
-    var raw = fs.readFileSync(file, 'utf8');
+    var raw = files.readFile(file, 'utf8');
   } catch (e) {
     if (e && e.code === 'ENOENT')
       return null;
@@ -982,16 +983,112 @@ _.extend(files.KeyValueFile.prototype, {
       lines.push(k + "=" + v);
     }
     var newdata = lines.join('\n') + '\n';
-    fs.writeFileSync(self.path, newdata, 'utf8');
+    files.writeFile(self.path, newdata, 'utf8');
   },
 
   _readAll: function () {
     var self = this;
 
-    if (fs.existsSync(self.path)) {
-      return fs.readFileSync(self.path, 'utf8');
+    if (files.exists(self.path)) {
+      return files.readFile(self.path, 'utf8');
     } else {
       return null;
     }
   }
 });
+
+/////// Below here, functions have been corrected for slashes
+
+var convertToOSPath = function (standardPath) {
+  if (process.platform === "win32") {
+    return standardPath.replace(/\\/g, path.sep);
+  }
+
+  return standardPath;
+};
+
+var convertToStandardPath = function (osPath) {
+  if (process.platform === "win32") {
+    return osPath.replace(/\//g, "/");
+  }
+
+  return osPath;
+}
+
+/**
+ * Wrap a function from node's fs module to use the right slashes for this OS
+ * and run in a fiber
+ * @param  {Function} fsFunc         The function to wrap
+ * @param  {Number[]} pathArgIndices Indices of arguments that have paths, these
+ * arguments will be converted to the correct OS slashes
+ * @param  {Object} options        Some options for lesser-used cases
+ * @param {Boolean} options.noErr If true, the callback of the wrapped function
+ * doesn't have a first "error" argument, for example in fs.exists.
+ * @param {Function} options.modifyReturnValue Pass in a function to modify the
+ * return value
+ * @return {Function}               The wrapped function]
+ */
+var wrapFsFunc = function (fsFunc, pathArgIndices, options) {
+  return function () {
+    var args = arguments;
+    options = options || {};
+
+    // convert slashes
+    _.each(pathArgIndices, function (i) {
+      args[i] = args[i];
+    });
+
+    if (options.noErr) {
+      var fut = new Future();
+
+      var callback = function (value) {
+        fut.return(value);
+      }
+
+      // convert args to an array
+      args = [].splice.call(args, 0).concat(callback);
+
+      fsFunc.apply(fs, args);
+
+      if (options.modifyReturnValue) {
+        return options.modifyReturnValue(fut.wait());
+      }
+
+      return fut.wait();
+    } else {
+      var returnValue = Future.wrap(fsFunc).apply(fs, args).wait();
+
+      if (options.modifyReturnValue) {
+        return options.modifyReturnValue(returnValue);
+      }
+
+      return returnValue;
+    }
+  }
+}
+
+files.writeFile = wrapFsFunc(fs.writeFile, [0]);
+files.readFile = wrapFsFunc(fs.readFile, [0]);
+files.stat = wrapFsFunc(fs.stat, [0]);
+files.lstat = wrapFsFunc(fs.lstat, [0]);
+files.exists = wrapFsFunc(fs.exists, [0], {noErr: true});
+files.rename = wrapFsFunc(fs.rename, [0, 1]);
+
+// Warning: doesn't convert slashes in the second 'cache' arg
+files.realpath = wrapFsFunc(fs.realpath, [0], {
+  modifyReturnValue: convertToStandardPath
+});
+
+files.readdir = wrapFsFunc(fs.readdir, [0], {
+  modifyReturnValue: function (files) {
+    return _.map(files, convertToStandardPath);
+  }
+});
+
+files.rmdir = wrapFsFunc(fs.rmdir, [0]);
+files.mkdir = wrapFsFunc(fs.mkdir, [0]);
+
+files.unlink = wrapFsFunc(fs.unlink, [0]);
+
+files.chmod = wrapFsFunc(fs.chmod, [0]);
+
