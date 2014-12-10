@@ -1,6 +1,5 @@
 var _ = require('underscore');
 var path = require('path');
-var fs = require('fs');
 var assert = require('assert');
 var Future = require('fibers/future');
 var files = require('../../files.js');
@@ -58,7 +57,7 @@ var runTest = function () {
       outputPath: tmpOutputDir
     });
     var clientManifest = JSON.parse(
-      fs.readFileSync(
+      files.readFile(
         path.join(tmpOutputDir, "programs", "web.browser", "program.json")
       )
     );
@@ -72,8 +71,8 @@ var runTest = function () {
       assert(manifestItem);
       var diskPath = path.join(tmpOutputDir, "programs", "web.browser",
                                manifestItem.path);
-      assert(fs.existsSync(diskPath));
-      assert.strictEqual(fs.readFileSync(diskPath, "utf8"), file[1]);
+      assert(files.exists(diskPath));
+      assert.strictEqual(files.readFile(diskPath, "utf8"), file[1]);
     });
   });
 
@@ -89,7 +88,7 @@ var runTest = function () {
     });
 
     var serverManifest = JSON.parse(
-      fs.readFileSync(
+      files.readFile(
         path.join(tmpOutputDir, "programs", "server",
                   "program.json")
       )
@@ -114,14 +113,14 @@ var runTest = function () {
     });
     // check that the files are where the manifest says they are
     assert.strictEqual(result.errors, false, result.errors && result.errors[0]);
-    assert(fs.existsSync(testTxtPath));
-    assert(fs.existsSync(nestedTxtPath));
-    assert(fs.existsSync(packageTxtPath));
-    assert(fs.existsSync(unregisteredExtensionPath));
-    assert.strictEqual(fs.readFileSync(testTxtPath, "utf8"), "Test\n");
-    assert.strictEqual(fs.readFileSync(nestedTxtPath, "utf8"), "Nested\n");
-    assert.strictEqual(fs.readFileSync(packageTxtPath, "utf8"), "Package\n");
-    assert.strictEqual(fs.readFileSync(unregisteredExtensionPath, "utf8"),
+    assert(files.exists(testTxtPath));
+    assert(files.exists(nestedTxtPath));
+    assert(files.exists(packageTxtPath));
+    assert(files.exists(unregisteredExtensionPath));
+    assert.strictEqual(files.readFile(testTxtPath, "utf8"), "Test\n");
+    assert.strictEqual(files.readFile(nestedTxtPath, "utf8"), "Nested\n");
+    assert.strictEqual(files.readFile(packageTxtPath, "utf8"), "Package\n");
+    assert.strictEqual(files.readFile(unregisteredExtensionPath, "utf8"),
                        "No extension handler\n");
 
     // Run the app to check that Assets.getText/Binary do the right things.

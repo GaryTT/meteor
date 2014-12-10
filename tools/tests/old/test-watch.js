@@ -1,5 +1,4 @@
 var path = require('path');
-var fs = require('fs');
 var _ = require('underscore');
 var assert = require('assert');
 var crypto = require('crypto');
@@ -14,7 +13,7 @@ var serial = 0;
 var touchFile = function (filePath, contents) {
   filePath = path.join(tmp, filePath);
   files.mkdir_p(path.dirname(filePath));
-  fs.writeFileSync(filePath, contents || ('' + serial));
+  files.writeFile(filePath, contents || ('' + serial));
   serial++;
 };
 
@@ -46,9 +45,9 @@ var go = function (options) {
   _.each(options.files, function (value, file) {
     file = path.join(tmp, file);
     if (value !== null && typeof value !== "string") {
-      if (fs.existsSync(file)) {
+      if (files.exists(file)) {
         var hash = crypto.createHash('sha1');
-        hash.update(fs.readFileSync(file));
+        hash.update(files.readFile(file));
         value = hash.digest('hex');
       } else {
         value = 'dummyhash';

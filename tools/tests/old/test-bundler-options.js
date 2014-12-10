@@ -1,8 +1,6 @@
 var _ = require('underscore');
 var path = require('path');
-var fs = require('fs');
 var assert = require('assert');
-var utils = require('../../utils.js');
 var bundler = require('../../bundler.js');
 var release = require('../../release.js');
 var files = require('../../files.js');
@@ -47,7 +45,7 @@ var runTest = function () {
   catalog.official.initialize();
 
   var readManifest = function (tmpOutputDir) {
-    return JSON.parse(fs.readFileSync(
+    return JSON.parse(files.readFile(
       path.join(tmpOutputDir, "programs", "web.browser", "program.json"),
       "utf8")).manifest;
   };
@@ -66,13 +64,13 @@ var runTest = function () {
     assert.strictEqual(result.errors, false, result.errors && result.errors[0]);
 
     // sanity check -- main.js has expected contents.
-    assert.strictEqual(fs.readFileSync(path.join(tmpOutputDir, "main.js"), "utf8"),
+    assert.strictEqual(files.readFile(path.join(tmpOutputDir, "main.js"), "utf8"),
                        bundler._mainJsContents);
     // no top level node_modules directory
-    assert(!fs.existsSync(path.join(tmpOutputDir,
+    assert(!files.exists(path.join(tmpOutputDir,
                                     "programs", "server", "node_modules")));
     // yes package node_modules directory
-    assert(fs.lstatSync(path.join(
+    assert(files.lstat(path.join(
       tmpOutputDir, "programs", "server", "npm", "ddp"))
            .isDirectory());
 
@@ -97,7 +95,7 @@ var runTest = function () {
     assert.strictEqual(result.errors, false);
 
     // sanity check -- main.js has expected contents.
-    assert.strictEqual(fs.readFileSync(path.join(tmpOutputDir, "main.js"), "utf8"),
+    assert.strictEqual(files.readFile(path.join(tmpOutputDir, "main.js"), "utf8"),
                        bundler._mainJsContents);
 
     // verify that contents are not minified
@@ -131,15 +129,15 @@ var runTest = function () {
     assert.strictEqual(result.errors, false);
 
     // sanity check -- main.js has expected contents.
-    assert.strictEqual(fs.readFileSync(path.join(tmpOutputDir, "main.js"), "utf8"),
+    assert.strictEqual(files.readFile(path.join(tmpOutputDir, "main.js"), "utf8"),
                        bundler._mainJsContents);
     // node_modules directory exists and is a symlink
-    assert(fs.lstatSync(path.join(tmpOutputDir, "programs", "server", "node_modules")).isSymbolicLink());
+    assert(files.lstat(path.join(tmpOutputDir, "programs", "server", "node_modules")).isSymbolicLink());
     // node_modules contains fibers
-    assert(fs.existsSync(path.join(tmpOutputDir, "programs", "server", "node_modules", "fibers")));
+    assert(files.exists(path.join(tmpOutputDir, "programs", "server", "node_modules", "fibers")));
     // package node_modules directory also a symlink
     // XXX might be breaking this
-    assert(fs.lstatSync(path.join(
+    assert(files.lstat(path.join(
       tmpOutputDir, "programs", "server", "npm", "ddp", "node_modules"))
            .isSymbolicLink());
   });
