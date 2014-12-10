@@ -5,7 +5,6 @@
 var Future = require('fibers/future');
 
 var path = require('path');
-var fs = require('fs');
 var cleanup = require(path.join(__dirname, 'cleanup.js'));
 var files = require(path.join(__dirname, 'files.js'));
 var httpHelpers = require('./http-helpers.js');
@@ -21,7 +20,7 @@ var meteorNpm = exports;
 var tmpDirs = [];
 cleanup.onExit(function () {
   _.each(tmpDirs, function (dir) {
-    if (fs.existsSync(dir))
+    if (files.exists(dir))
       files.rm_recursive(dir);
   });
 });
@@ -55,7 +54,7 @@ meteorNpm.updateDependencies = function (packageName,
     // instances are trying to make this update in parallel, so we rename the
     // directory to something before doing the rm -rf.
     try {
-      fs.renameSync(packageNpmDir, newPackageNpmDir);
+      files.rename(packageNpmDir, newPackageNpmDir);
     } catch (e) {
       if (e.code !== 'ENOENT')
         throw e;
@@ -75,12 +74,12 @@ meteorNpm.updateDependencies = function (packageName,
     //
     // If you've reached that state, delete the empty directory and
     // proceed.
-    if (fs.existsSync(packageNpmDir) &&
-        ! fs.existsSync(path.join(packageNpmDir, 'npm-shrinkwrap.json'))) {
+    if (files.exists(packageNpmDir) &&
+        ! files.exists(path.join(packageNpmDir, 'npm-shrinkwrap.json'))) {
       files.rm_recursive(packageNpmDir);
     }
 
-    if (fs.existsSync(packageNpmDir)) {
+    if (files.exists(packageNpmDir)) {
       // we already nave a .npm directory. update it appropriately with some
       // ceremony involving:
       // `npm install`, `npm install name@version`, `npm shrinkwrap`
@@ -103,7 +102,7 @@ meteorNpm.updateDependencies = function (packageName,
     // Some other exception -- let it propagate.
     throw e;
   } finally {
-    if (fs.existsSync(newPackageNpmDir))
+    if (files.exists(newPackageNpmDir))
       files.rm_recursive(newPackageNpmDir);
     tmpDirs = _.without(tmpDirs, newPackageNpmDir);
   }
@@ -125,11 +124,11 @@ meteorNpm.dependenciesArePortable = function (packageNpmDir) {
   // in the vast majority of cases.
 
   var search = function (dir) {
-    return _.find(fs.readdirSync(dir), function (itemName) {
+    return _.find(files.readdir(dir), function (itemName) {
       if (itemName.match(/\.node$/))
         return true;
       var item = path.join(dir, itemName);
-      if (fs.lstatSync(item).isDirectory())
+      if (files.lstat(item).isDirectory())
         return search(item);
     }) || false;
   };
@@ -144,13 +143,13 @@ var makeNewPackageNpmDir = function (newPackageNpmDir) {
 
   // create node_modules -- prevent npm install from installing
   // to an existing node_modules dir higher up in the filesystem
-  fs.mkdirSync(path.join(newPackageNpmDir, 'node_modules'));
+  files.mkdir(path.join(newPackageNpmDir, 'node_modules'));
 
   // create .gitignore -- node_modules shouldn't be in git since we
   // recreate it as needed by using `npm install`. since we use `npm
   // shrinkwrap` we're guaranteed to have the same version installed
   // each time.
-  fs.writeFileSync(
+  files.writeFile(
     path.join(newPackageNpmDir, '.gitignore'),
     ['node_modules',
      ''/*git diff complains without trailing newline*/].join('\n'));
@@ -160,10 +159,10 @@ var updateExistingNpmDirectory = function (packageName, newPackageNpmDir,
                                            packageNpmDir, npmDependencies,
                                            quiet) {
   // sanity check on contents of .npm directory
-  if (!fs.statSync(packageNpmDir).isDirectory())
+  if (!files.stat(packageNpmDir).isDirectory())
     throw new Error("Corrupted .npm directory -- should be a directory: " +
                     packageNpmDir);
-  if (!fs.existsSync(path.join(packageNpmDir, 'npm-shrinkwrap.json')))
+  if (!files.exists(path.join(packageNpmDir, 'npm-shrinkwrap.json')))
     throw new Error(
       "Corrupted .npm directory -- can't find npm-shrinkwrap.json in " +
         packageNpmDir);
@@ -172,10 +171,10 @@ var updateExistingNpmDirectory = function (packageName, newPackageNpmDir,
   // changes, in case there are some binary ones. Technically this is
   // racey, but it shouldn't fail very often.
   var nodeModulesDir = path.join(packageNpmDir, 'node_modules');
-  if (fs.existsSync(nodeModulesDir)) {
+  if (files.exists(nodeModulesDir)) {
     var oldNodeVersion;
     try {
-      oldNodeVersion = fs.readFileSync(
+      oldNodeVersion = files.readFile(
         path.join(packageNpmDir, 'node_modules', '.node_version'), 'utf8');
     } catch (e) {
       if (e.code !== 'ENOENT')
@@ -194,8 +193,8 @@ var updateExistingNpmDirectory = function (packageName, newPackageNpmDir,
   // filesystem.  node_modules may be absent due to a change in Node version or
   // when `meteor add`ing a cloned package for the first time (node_modules is
   // excluded by .gitignore)
-  if (! fs.existsSync(nodeModulesDir))
-    fs.mkdirSync(nodeModulesDir);
+  if (! files.exists(nodeModulesDir))
+    files.mkdir(nodeModulesDir);
 
   var installedDependenciesTree = getInstalledDependenciesTree(packageNpmDir);
   var installedDependencies = treeToDependencies(installedDependenciesTree);
@@ -240,7 +239,7 @@ var updateExistingNpmDirectory = function (packageName, newPackageNpmDir,
 
   if (!_.isEmpty(preservedShrinkwrap.dependencies)) {
     // There are some unchanged packages here. Install from shrinkwrap.
-    fs.writeFileSync(path.join(newPackageNpmDir, 'npm-shrinkwrap.json'),
+    files.writeFile(path.join(newPackageNpmDir, 'npm-shrinkwrap.json'),
                      JSON.stringify(preservedShrinkwrap, null, /*legible*/2));
 
     // construct a matching package.json to make `npm install` happy
@@ -251,8 +250,8 @@ var updateExistingNpmDirectory = function (packageName, newPackageNpmDir,
     installFromShrinkwrap(newPackageNpmDir);
 
     // delete package.json and npm-shrinkwrap.json
-    fs.unlinkSync(path.join(newPackageNpmDir, 'package.json'));
-    fs.unlinkSync(path.join(newPackageNpmDir, 'npm-shrinkwrap.json'));
+    files.unlink(path.join(newPackageNpmDir, 'package.json'));
+    files.unlink(path.join(newPackageNpmDir, 'npm-shrinkwrap.json'));
   }
 
   // we may have just installed the shrinkwrapped packages. but let's not
@@ -297,7 +296,7 @@ var completeNpmDirectory = function (packageName, newPackageNpmDir,
   shrinkwrap(newPackageNpmDir);
 
   // now delete package.json
-  fs.unlinkSync(path.join(newPackageNpmDir, 'package.json'));
+  files.unlink(path.join(newPackageNpmDir, 'package.json'));
 
   createReadme(newPackageNpmDir);
   createNodeVersion(newPackageNpmDir);
@@ -307,7 +306,7 @@ var completeNpmDirectory = function (packageName, newPackageNpmDir,
 var createReadme = function (newPackageNpmDir) {
   // This file gets checked in to version control by users, so resist the
   // temptation to make unnecessary tweaks to it.
-  fs.writeFileSync(
+  files.writeFile(
     path.join(newPackageNpmDir, 'README'),
 "This directory and the files immediately inside it are automatically generated\n" +
 "when you change this package's NPM dependencies. Commit the files in this\n" +
@@ -320,7 +319,7 @@ var createReadme = function (newPackageNpmDir) {
 };
 
 var createNodeVersion = function (newPackageNpmDir) {
-  fs.writeFileSync(
+  files.writeFile(
     path.join(newPackageNpmDir, 'node_modules', '.node_version'),
     currentNodeCompatibilityVersion());
 };
@@ -378,7 +377,7 @@ var constructPackageJson = function (packageName, newPackageNpmDir,
     dependencies: npmDependencies
   });
   var packageJsonPath = path.join(newPackageNpmDir, 'package.json');
-  fs.writeFileSync(packageJsonPath, packageJsonContents);
+  files.writeFile(packageJsonPath, packageJsonContents);
 };
 
 // Gets a JSON object from `npm ls --json` (getInstalledDependenciesTree) or
@@ -415,7 +414,7 @@ var getInstalledDependenciesTree = function (dir) {
 };
 
 var getShrinkwrappedDependenciesTree = function (dir) {
-  var shrinkwrapFile = fs.readFileSync(path.join(dir, 'npm-shrinkwrap.json'));
+  var shrinkwrapFile = files.readFile(path.join(dir, 'npm-shrinkwrap.json'));
   return JSON.parse(shrinkwrapFile);
 };
 
@@ -498,7 +497,7 @@ var installNpmModule = function (name, version, dir) {
 };
 
 var installFromShrinkwrap = function (dir) {
-  if (! fs.existsSync(path.join(dir, "npm-shrinkwrap.json")))
+  if (! files.exists(path.join(dir, "npm-shrinkwrap.json")))
     throw new Error(
       "Can't call `npm install` without a npm-shrinkwrap.json file present");
 
@@ -569,7 +568,7 @@ var minimizeShrinkwrap = function (dir) {
   var topLevel = getShrinkwrappedDependenciesTree(dir);
   var minimized = minimizeDependencyTree(topLevel);
 
-  fs.writeFileSync(
+  files.writeFile(
     path.join(dir, 'npm-shrinkwrap.json'),
     // Matches the formatting done by 'npm shrinkwrap'.
     JSON.stringify(minimized, null, 2) + '\n');

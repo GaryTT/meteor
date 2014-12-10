@@ -69,7 +69,7 @@ _.extend(Builder.prototype, {
       var partial = partsSoFar.join(path.sep);
       if (! (partial in self.usedAsFile)) {
         // It's new -- create it
-        fs.mkdirSync(path.join(self.buildPath, partial), 0755);
+        files.mkdir(path.join(self.buildPath, partial), 0755);
         self.usedAsFile[partial] = false;
       } else if (self.usedAsFile[partial]) {
         // Already exists and is a file. Oops.
@@ -184,7 +184,7 @@ _.extend(Builder.prototype, {
       // Builder is used to create build products, which should be read-only;
       // users shouldn't be manually editing automatically generated files and
       // expecting the results to "stick".
-      fs.writeFileSync(absPath, data,
+      files.writeFile(absPath, data,
                        { mode: options.executable ? 0555 : 0444 });
     }
     self.usedAsFile[relPath] = true;
@@ -203,7 +203,7 @@ _.extend(Builder.prototype, {
       relPath = relPath.slice(0, -1);
 
     self._ensureDirectory(path.dirname(relPath));
-    fs.writeFileSync(path.join(self.buildPath, relPath),
+    files.writeFile(path.join(self.buildPath, relPath),
                      new Buffer(JSON.stringify(data, null, 2), 'utf8'),
                      {mode: 0444});
 
@@ -244,7 +244,7 @@ _.extend(Builder.prototype, {
       var shouldBeDirectory = (i < parts.length - 1) || options.directory;
       if (shouldBeDirectory) {
         if (! (soFar in self.usedAsFile)) {
-          fs.mkdirSync(path.join(self.buildPath, soFar), 0755);
+          files.mkdir(path.join(self.buildPath, soFar), 0755);
           self.usedAsFile[soFar] = false;
         }
       } else {
@@ -337,9 +337,9 @@ _.extend(Builder.prototype, {
         // XXX This is somewhat broken: what if the reason we're in
         // self.usedAsFile is because an immediate child of ours was reserved as
         // a file but not actually written yet?
-        var children = fs.readdirSync(absPathTo);
+        var children = files.readdir(absPathTo);
         if (_.isEmpty(children)) {
-          fs.rmdirSync(absPathTo);
+          files.rmdir(absPathTo);
         } else {
           canSymlink = false;
         }
@@ -367,7 +367,7 @@ _.extend(Builder.prototype, {
     var walk = function (absFrom, relTo) {
       self._ensureDirectory(relTo);
 
-      _.each(fs.readdirSync(absFrom), function (item) {
+      _.each(files.readdir(absFrom), function (item) {
         var thisAbsFrom = path.resolve(absFrom, item);
         var thisRelTo = path.join(relTo, item);
 
@@ -375,7 +375,7 @@ _.extend(Builder.prototype, {
           return;
         }
 
-        var fileStatus = fs.lstatSync(thisAbsFrom);
+        var fileStatus = files.lstat(thisAbsFrom);
 
         var itemForMatch = item;
         var isDirectory = fileStatus.isDirectory();

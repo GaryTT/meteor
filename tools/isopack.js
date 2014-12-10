@@ -529,14 +529,14 @@ _.extend(Isopack.prototype, {
     // more unibuilds are merged in). For any given call to
     // _loadUnibuildsFromPath, let's ensure we see a consistent isopack by
     // realpath'ing dir.
-    dir = fs.realpathSync(dir);
+    dir = files.realpath(dir);
 
     var mainJson;
 
     // deal with different versions of "isopack.json", backwards compatible
     var isopackJsonPath = path.join(dir, "isopack.json");
-    if (fs.existsSync(isopackJsonPath)) {
-      var isopackJson = JSON.parse(fs.readFileSync(isopackJsonPath));
+    if (files.exists(isopackJsonPath)) {
+      var isopackJson = JSON.parse(files.readFile(isopackJsonPath));
 
       if (isopackJson[currentFormat]) {
         mainJson = isopackJson[currentFormat];
@@ -549,8 +549,8 @@ _.extend(Isopack.prototype, {
       // super old version with different file name
       // XXX COMPAT WITH 0.9.3
       var unipackageJsonPath = path.join(dir, "unipackage.json");
-      if (fs.existsSync(unipackageJsonPath)) {
-        mainJson = JSON.parse(fs.readFileSync(unipackageJsonPath));
+      if (files.exists(unipackageJsonPath)) {
+        mainJson = JSON.parse(files.readFile(unipackageJsonPath));
 
         // in the old format, builds were called unibuilds
         // use string to make sure this doesn't get caught in a find/replace
@@ -645,7 +645,7 @@ _.extend(Isopack.prototype, {
         return;
 
       var unibuildJson = JSON.parse(
-        fs.readFileSync(path.join(dir, unibuildMeta.path)));
+        files.readFile(path.join(dir, unibuildMeta.path)));
       var unibuildBasePath = path.dirname(path.join(dir, unibuildMeta.path));
 
       if (unibuildJson.format !== "unipackage-unibuild-pre1")
@@ -687,7 +687,7 @@ _.extend(Isopack.prototype, {
           };
           if (resource.sourceMap) {
             rejectBadPath(resource.sourceMap);
-            prelinkFile.sourceMap = fs.readFileSync(
+            prelinkFile.sourceMap = files.readFile(
               path.join(unibuildBasePath, resource.sourceMap), 'utf8');
           }
           prelinkFiles.push(prelinkFile);
