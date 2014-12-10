@@ -3,7 +3,6 @@ var archinfo = require('./archinfo.js');
 var _ = require('underscore');
 var linker = require('./linker.js');
 var buildmessage = require('./buildmessage.js');
-var fs = require('fs');
 var path = require('path');
 var Builder = require('./builder.js');
 var bundler = require('./bundler.js');
@@ -669,12 +668,12 @@ _.extend(Isopack.prototype, {
         // throws instead of acting like POSIX read:
         // https://github.com/joyent/node/issues/5685
         if (resource.length > 0) {
-          var fd = fs.openSync(path.join(unibuildBasePath, resource.file), "r");
+          var fd = files.open(path.join(unibuildBasePath, resource.file), "r");
           try {
-            var count = fs.readSync(
+            var count = files.read(
               fd, data, 0, resource.length, resource.offset);
           } finally {
-            fs.closeSync(fd);
+            files.close(fd);
           }
           if (count !== resource.length)
             throw new Error("couldn't read entire resource");

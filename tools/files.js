@@ -295,7 +295,7 @@ files.fileHash = function (filename) {
   var crypto = require('crypto');
   var hash = crypto.createHash('sha256');
   hash.setEncoding('base64');
-  var rs = fs.createReadStream(filename);
+  var rs = files.createReadStream(filename);
   var fut = new Future();
   rs.on('end', function () {
     rs.close();
@@ -473,8 +473,8 @@ files.copyFile = function (from, to) {
 };
 
 var copyFileHelper = function (from, to, mode) {
-  var readStream = fs.createReadStream(from);
-  var writeStream = fs.createWriteStream(to, { mode: mode });
+  var readStream = files.createReadStream(from);
+  var writeStream = files.createWriteStream(to, { mode: mode });
   var future = new Future;
   var onError = function (e) {
     future.isResolved() || future.throw(e);
@@ -617,7 +617,7 @@ files.createTarGzStream = function (dirPath, options) {
 // The tar archive will contain a top-level directory named after dirPath.
 files.createTarball = function (dirPath, tarball, options) {
   var future = new Future;
-  var out = fs.createWriteStream(tarball);
+  var out = files.createWriteStream(tarball);
   out.on('error', function (err) {
     future.throw(err);
   });
@@ -1035,7 +1035,7 @@ var wrapFsFunc = function (fsFunc, pathArgIndices, options) {
 
     // convert slashes
     _.each(pathArgIndices, function (i) {
-      args[i] = args[i];
+      args[i] = convertToOSPath(args[i]);
     });
 
     if (options.noErr) {
@@ -1091,4 +1091,22 @@ files.mkdir = wrapFsFunc(fs.mkdir, [0]);
 files.unlink = wrapFsFunc(fs.unlink, [0]);
 
 files.chmod = wrapFsFunc(fs.chmod, [0]);
+
+files.createReadStream = function () {
+  arguments[0] = convertToOSPath(arguments[0]);
+  return fs.createReadStream.apply(fs, arguments);
+};
+
+files.createWriteStream = function () {
+  arguments[0] = convertToOSPath(arguments[0]);
+  return fs.createWriteStream.apply(fs, arguments);
+};
+
+files.open = wrapFsFunc(fs.open, [0]);
+
+// XXX this doesn't give you the second argument to the callback
+files.read = wrapFsFunc(fs.read, []);
+
+files.close = wrapFsFunc(fs.close, []);
+
 

@@ -1,4 +1,3 @@
-var fs = require('fs');
 var path = require('path');
 var Future = require('fibers/future');
 var _ = require('underscore');
@@ -259,7 +258,7 @@ var bundleSource = function (isopack, includeSources, packageDir,
   //      from inside an app, whereas the package-source-tree .versions file
   //      is only used for standalone packages
   var packageMapFilename = path.join(sourcePackageDir, '.versions');
-  if (fs.existsSync(packageMapFilename))
+  if (files.exists(packageMapFilename))
     throw Error(".versions file already exists? " + packageMapFilename);
   var packageMapFile = new projectContextModule.PackageMapFile({
     filename: packageMapFilename
@@ -284,8 +283,8 @@ var bundleSource = function (isopack, includeSources, packageDir,
 };
 
 var uploadTarball = function (putUrl, tarball) {
-  var size = fs.statSync(tarball).size;
-  var rs = fs.createReadStream(tarball);
+  var size = files.stat(tarball).size;
+  var rs = files.createReadStream(tarball);
   try {
     // Use getUrl instead of request, to throw on 4xx/5xx.
     httpHelpers.getUrl({
