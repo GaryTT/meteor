@@ -998,7 +998,7 @@ _.extend(files.KeyValueFile.prototype, {
 });
 
 files.getHomeDir = function () {
-  return process.env.HOME || process.env.HOMEPATH || process.env.USERPROFILE;
+  return process.env.HOME || process.env.LOCALAPPDATA || process.env.APPDATA;
 };
 
 /////// Below here, functions have been corrected for slashes
