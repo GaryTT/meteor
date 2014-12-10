@@ -1,6 +1,5 @@
 var _ = require('underscore');
 var path = require('path');
-var fs = require('fs');
 var utils = require('./utils.js');
 var files = require('./files.js');
 var config = require('./config.js');
@@ -131,9 +130,9 @@ var sessionMethodCaller = function (methodName, options) {
 
 var readSessionData = function () {
   var sessionPath = config.getSessionFilePath();
-  if (! fs.existsSync(sessionPath))
+  if (! files.exists(sessionPath))
     return {};
-  return JSON.parse(fs.readFileSync(sessionPath, { encoding: 'utf8' }));
+  return JSON.parse(files.readFile(sessionPath, { encoding: 'utf8' }));
 };
 
 var writeSessionData = function (data) {
@@ -153,7 +152,7 @@ var writeSessionData = function (data) {
           path.join(path.dirname(sessionPath), '.meteorsession.' +
                     Math.floor(Math.random() * 999999));
     try {
-      var fd = fs.openSync(tempPath, 'wx', 0600);
+      var fd = files.open(tempPath, 'wx', 0600);
     } catch (e) {
       continue;
     }
@@ -161,14 +160,14 @@ var writeSessionData = function (data) {
     try {
       // Write `data` to the file.
       var buf = new Buffer(JSON.stringify(data, undefined, 2), 'utf8');
-      fs.writeSync(fd, buf, 0, buf.length, 0);
+      files.write(fd, buf, 0, buf.length, 0);
     } finally {
-      fs.closeSync(fd);
+      files.close(fd);
     }
 
     // Atomically remove the old file (if any) and replace it with
     // the temporary file we just created.
-    fs.renameSync(tempPath, sessionPath);
+    files.rename(tempPath, sessionPath);
     return;
   }
 };

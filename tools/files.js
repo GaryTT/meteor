@@ -1106,6 +1106,7 @@ files.open = wrapFsFunc(fs.open, [0]);
 
 // XXX this doesn't give you the second argument to the callback
 files.read = wrapFsFunc(fs.read, []);
+files.write = wrapFsFunc(fs.read, []);
 
 files.close = wrapFsFunc(fs.close, []);
 
