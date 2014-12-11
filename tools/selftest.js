@@ -1696,7 +1696,7 @@ var runTests = function (options) {
       testList.notifyFailed(test);
 
       var frames = parseStack.parse(failure);
-      var relpath = path.relative(files.getCurrentToolsDir(),
+      var relpath = files.pathRelative(files.getCurrentToolsDir(),
                                   frames[0].file);
       Console.rawError("  => " + failure.reason + " at " +
                     relpath + ":" + frames[0].line + "\n");
