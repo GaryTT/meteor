@@ -196,7 +196,7 @@ var updateMeteorToolSymlink = function () {
     if (!toolRecord)
       throw Error("latest release has no tool?");
 
-    tropohouse.default.replaceLatestMeteorSymlink(
-      files.pathJoin(relativeToolPath, toolRecord.path, 'meteor'));
+    tropohouse.default.linkToLatestMeteor(files.pathJoin(
+      relativeToolPath, toolRecord.path, 'meteor'));
   }
 };
