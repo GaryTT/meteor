@@ -372,7 +372,7 @@ var runNpmCommand = function (args, opts) {
   if (os.platform() === "win32") {
     npmPath = files.pathJoin(files.getDevBundle(), "bin", "npm.cmd");
   } else {
-    npmPath = file.pathJoin(files.getDevBundle(), "bin", "npm");
+    npmPath = files.pathJoin(files.getDevBundle(), "bin", "npm");
   }
 
   return meteorNpm._execFileSync(npmPath, args, opts);
