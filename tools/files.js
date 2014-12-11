@@ -993,6 +993,7 @@ files.linkToMeteorScript = function (scriptLocation, linkLocation) {
 
 /////// Below here, functions have been corrected for slashes
 
+// XXX these are mostly duplicates of below toPosixPath and toDosPath
 var convertToOSPath = function (standardPath) {
   if (process.platform === "win32") {
     return standardPath.replace(/\\/g, path.sep);
@@ -1061,33 +1062,86 @@ var wrapFsFunc = function (fsFunc, pathArgIndices, options) {
   }
 }
 
-files.writeFile = wrapFsFunc(fs.writeFile, [0]);
-files.appendFile = wrapFsFunc(fs.appendFile, [0]);
-files.readFile = wrapFsFunc(fs.readFile, [0]);
+// Simple wrappers
 files.stat = wrapFsFunc(fs.stat, [0]);
 files.lstat = wrapFsFunc(fs.lstat, [0]);
 files.exists = wrapFsFunc(fs.exists, [0], {noErr: true});
+files.mkdir = wrapFsFunc(fs.mkdir, [0]);
+files.chmod = wrapFsFunc(fs.chmod, [0]);
+files.open = wrapFsFunc(fs.open, [0]);
+files.read = wrapFsFunc(fs.read, []);
+files.write = wrapFsFunc(fs.write, []);
+files.close = wrapFsFunc(fs.close, []);
+files.symlink = wrapFsFunc(fs.symlink, [0, 1]);
+files.readlink = wrapFsFunc(fs.readlink, [0]);
 
-var rename = wrapFsFunc(fs.rename, [0, 1]);
-files.rename = function (from, to) {
-  // retries are necessarily only on Windows, because the rename call can fail
-  // with EBUSY, which means the file is "busy"
-  var maxTries = 10;
-  var success = false;
-  while (! success && maxTries-- > 0) {
-    try {
-      rename(from, to);
-      success = true;
-    } catch (err) {
-      if (err.code !== 'EPERM')
-        throw err;
+// File reading and writing; need to convert line endings
+var writeFile = wrapFsFunc(fs.writeFile, [0]);
+var appendFile = wrapFsFunc(fs.appendFile, [0]);
+var readFile = wrapFsFunc(fs.readFile, [0]);
+
+// Automagically convert line endings for writeFile and appendFile
+if (process.platform === "win32") {
+  files.writeFile = function (filename, data, options) {
+    if (_.isString(data)) {
+      // on windows, replace line endings
+      data = data.replace(/\n/g, os.EOL);
     }
-  }
-  if (! success) {
-    files.cp_r(from, to);
-    files.rm_recursive(from);
-  }
-};
+
+    writeFile(filename, data, options);
+  };
+
+  files.appendFile = function (filename, data, options) {
+    if (_.isString(data)) {
+      // on windows, replace line endings
+      data = data.replace(/\n/g, os.EOL);
+    }
+
+    appendFile(filename, data, options);
+  };
+
+  files.readFile = function () {
+    var fileData = readFile.apply(files, arguments);
+
+    if (_.isString(fileData)) {
+      return fileData.replace(new RegExp(os.EOL, "g"), "\n");
+    }
+  };
+} else {
+  files.writeFile = writeFile;
+  files.appendFile = appendFile;
+  files.readFile = readFile;
+}
+
+// XXX need to retry
+files.unlink = wrapFsFunc(fs.unlink, [0]);
+files.rmdir = wrapFsFunc(fs.rmdir, [0]);
+
+// Rename might need to retry
+var rename = wrapFsFunc(fs.rename, [0, 1]);
+if (process.platform === "win32") {
+  files.rename = function (from, to) {
+    // retries are necessarily only on Windows, because the rename call can fail
+    // with EBUSY, which means the file is "busy"
+    var maxTries = 10;
+    var success = false;
+    while (! success && maxTries-- > 0) {
+      try {
+        rename(from, to);
+        success = true;
+      } catch (err) {
+        if (err.code !== 'EPERM')
+          throw err;
+      }
+    }
+    if (! success) {
+      files.cp_r(from, to);
+      files.rm_recursive(from);
+    }
+  };
+} else {
+  files.rename = rename;
+}
 
 // Warning: doesn't convert slashes in the second 'cache' arg
 files.realpath = wrapFsFunc(fs.realpath, [0], {
@@ -1100,13 +1154,7 @@ files.readdir = wrapFsFunc(fs.readdir, [0], {
   }
 });
 
-files.rmdir = wrapFsFunc(fs.rmdir, [0]);
-files.mkdir = wrapFsFunc(fs.mkdir, [0]);
-
-files.unlink = wrapFsFunc(fs.unlink, [0]);
-
-files.chmod = wrapFsFunc(fs.chmod, [0]);
-
+// These don't need to be Fiberized
 files.createReadStream = function () {
   arguments[0] = convertToOSPath(arguments[0]);
   return fs.createReadStream.apply(fs, arguments);
@@ -1116,19 +1164,6 @@ files.createWriteStream = function () {
   arguments[0] = convertToOSPath(arguments[0]);
   return fs.createWriteStream.apply(fs, arguments);
 };
-
-files.open = wrapFsFunc(fs.open, [0]);
-
-// XXX this doesn't give you the second argument to the callback
-files.read = wrapFsFunc(fs.read, []);
-files.write = wrapFsFunc(fs.read, []);
-
-files.close = wrapFsFunc(fs.close, []);
-
-// XXX remove these and stop using symlinks
-files.symlink = wrapFsFunc(fs.symlink, [0, 1]);
-files.readlink = wrapFsFunc(fs.readlink, [0]);
-
 
 // wrappings for path functions those always run as they were on unix
 var wrapPathFunction = function (f) {
